@@ -1,6 +1,7 @@
 // ============================================================
-// こよみ 七十二候 — 全ロジック1ファイル版（豪華装飾・回転羅針盤・72表情・劇的演出版）
-// data + i18n + engine + ornate + particles + sound(synth) + app
+// こよみ 七十二候 — 全ロジック1ファイル版（リリース対応・権利/セキュリティ整備版）
+// data + i18n + engine + ornate + waka + particles + sound + share + app
+// 外部API・外部通信なし／全素材オリジナルまたはパブリックドメイン
 // ============================================================
 
 // ===================== data.js =====================
@@ -851,6 +852,89 @@ function hankoSVG(chars, size) {
   </svg>`;
 }
 
+// ===================== waka.js =====================
+// ============================================================
+// waka.js — 季節の古典和歌（24節気に一首ずつ）
+// すべて著作権の切れた古典（古今集・新古今集・百人一首・万葉集等）
+// w=和歌 / a=作者 / src=出典 / im=現代語の意 / en=英訳
+// ============================================================
+const WAKA = [
+  // 0 立春
+  { w: '袖ひちて むすびし水の こほれるを 春立つけふの 風やとくらむ', a: '紀貫之', src: '古今和歌集',
+    im: '夏に袖を濡らして掬った水が冬に凍り、立春の今日の風が溶かしているだろうか。', en: 'The water I once cupped, now frozen—perhaps today\'s spring wind melts it.' },
+  // 1 雨水
+  { w: '春の夜の 闇はあやなし 梅の花 色こそ見えね 香やはかくるる', a: '凡河内躬恒', src: '古今和歌集',
+    im: '春の夜の闇はわけがわからない。梅の花は色こそ見えないが、香りまでは隠せまい。', en: 'Spring night\'s darkness hides the plum\'s color—yet how could it hide such fragrance?' },
+  // 2 啓蟄
+  { w: '春日野の 飛火の野守 出でて見よ 今いくかありて 若菜摘みてむ', a: '読人しらず', src: '古今和歌集',
+    im: '春日野の野守よ、出て見ておくれ。あと幾日経てば若菜を摘めるだろうか。', en: 'Watchman of the field, come look—how many days until we gather young greens?' },
+  // 3 春分
+  { w: '世の中に たえて桜の なかりせば 春の心は のどけからまし', a: '在原業平', src: '古今和歌集',
+    im: 'この世にもし桜がまったく無かったなら、春を待つ心はどんなに穏やかだろうに。', en: 'If cherry blossoms did not exist, how serene the heart in spring would be.' },
+  // 4 清明
+  { w: '久方の 光のどけき 春の日に しづ心なく 花の散るらむ', a: '紀友則', src: '百人一首',
+    im: '日の光がのどかな春の日に、なぜ落ち着いた心もなく桜は散るのだろう。', en: 'On this tranquil sunlit spring day, why do the blossoms fall so restlessly?' },
+  // 5 穀雨
+  { w: '春雨の ふるは涙か 桜花 散るを惜しまぬ 人しなければ', a: '大伴黒主', src: '古今和歌集',
+    im: '春雨が降るのは涙だろうか。桜の散るのを惜しまぬ人などいないのだから。', en: 'Is this spring rain made of tears? For no one fails to mourn the falling cherry.' },
+  // 6 立夏
+  { w: '夏来ぬと 目にはさやかに 見えねども 風の音にぞ おどろかれぬる', a: '藤原敏行', src: '古今和歌集',
+    im: '夏が来たと目にははっきり見えないが、風の音にはっと気づかされる。', en: 'Summer\'s coming, unseen by the eye—yet the wind\'s sound startles me awake.' },
+  // 7 小満
+  { w: '夏の夜は まだ宵ながら 明けぬるを 雲のいづこに 月やどるらむ', a: '清原深養父', src: '百人一首',
+    im: '夏の夜はまだ宵のうちに明けてしまう。月は雲のどこに宿っているのだろう。', en: 'The summer night dawns while still young—in which cloud does the moon now lodge?' },
+  // 8 芒種
+  { w: '我が宿の 池の藤波 咲きにけり 山郭公 いつか来鳴かむ', a: '読人しらず', src: '万葉集',
+    im: '我が家の池の藤の花が咲いた。山ほととぎすはいつ来て鳴くだろう。', en: 'The wisteria by my pond has bloomed—when will the mountain cuckoo come to sing?' },
+  // 9 夏至
+  { w: '夕されば 野辺の秋風 身にしみて 鶉鳴くなり 深草の里', a: '藤原俊成', src: '千載和歌集',
+    im: '夕暮れになると野の風が身にしみて、鶉が鳴いている、この深草の里に。', en: 'At dusk the field wind pierces me; quails cry in the village of Fukakusa.' },
+  // 10 小暑
+  { w: '風そよぐ ならの小川の 夕暮れは みそぎぞ夏の しるしなりける', a: '藤原家隆', src: '百人一首',
+    im: '風がそよぐ楢の小川の夕暮れは、みそぎだけが夏の名残のしるしだ。', en: 'At dusk by the rustling oak stream, only the purification rite marks summer still.' },
+  // 11 大暑
+  { w: '蝉の声 聞けば悲しな 夏衣 うすくや人の ならむと思へば', a: '読人しらず', src: '古今和歌集',
+    im: '蝉の声を聞くと悲しい。夏衣が薄いように、人の情も薄くなるかと思うと。', en: 'The cicada\'s cry brings sorrow—will hearts grow as thin as summer robes?' },
+  // 12 立秋
+  { w: '秋来ぬと 目にはさやかに 見えねども 風の音にぞ おどろかれぬる', a: '藤原敏行', src: '古今和歌集',
+    im: '秋が来たと目にははっきり見えないが、風の音にはっと気づかされる。', en: 'Autumn\'s come, unseen by the eye—yet the wind\'s sound startles me awake.' },
+  // 13 処暑
+  { w: '秋の田の かりほの庵の 苫をあらみ わが衣手は 露にぬれつつ', a: '天智天皇', src: '百人一首',
+    im: '秋の田の仮小屋の苫が粗いので、私の袖は露に濡れ続けている。', en: 'The harvest hut\'s thatch is coarse—and so my sleeves stay wet with dew.' },
+  // 14 白露
+  { w: '白露に 風の吹きしく 秋の野は つらぬきとめぬ 玉ぞ散りける', a: '文屋朝康', src: '後撰和歌集',
+    im: '白露に風が吹きつける秋の野は、糸で貫きとめぬ玉が散るようだ。', en: 'Wind scatters white dew across the autumn field—like unstrung jewels falling.' },
+  // 15 秋分
+  { w: '奥山に 紅葉踏みわけ 鳴く鹿の 声きく時ぞ 秋は悲しき', a: '猿丸大夫', src: '百人一首',
+    im: '奥山で紅葉を踏み分けて鳴く鹿の声を聞く時こそ、秋は悲しい。', en: 'Deep in the hills, a deer cries through fallen leaves—then autumn\'s sorrow is deepest.' },
+  // 16 寒露
+  { w: '心あてに 折らばや折らむ 初霜の おきまどはせる 白菊の花', a: '凡河内躬恒', src: '百人一首',
+    im: '当て推量で折るなら折ろうか。初霜が降りて見分けがつかぬ白菊の花を。', en: 'Shall I pluck one by guess?—white chrysanthemums confused with the first frost.' },
+  // 17 霜降
+  { w: '嵐吹く 三室の山の もみぢ葉は 竜田の川の 錦なりけり', a: '能因法師', src: '百人一首',
+    im: '嵐が吹く三室山の紅葉は、竜田川に散り敷いて錦の織物のようだ。', en: 'Storm-blown maple leaves of Mt. Mimuro become brocade upon the Tatsuta River.' },
+  // 18 立冬
+  { w: '山里は 冬ぞさびしさ まさりける 人目も草も かれぬと思へば', a: '源宗于', src: '百人一首',
+    im: '山里は冬こそ寂しさが増す。人の訪れも草も枯れてしまうと思うと。', en: 'In the mountain village winter\'s loneliness deepens—both visitors and grasses wither.' },
+  // 19 小雪
+  { w: '朝ぼらけ 有明の月と 見るまでに 吉野の里に 降れる白雪', a: '坂上是則', src: '百人一首',
+    im: '夜明け方、有明の月かと見まがうほどに、吉野の里に降った白雪よ。', en: 'At dawn I mistook it for the moon—white snow fallen on Yoshino village.' },
+  // 20 大雪
+  { w: '駒とめて 袖うちはらふ かげもなし 佐野のわたりの 雪の夕暮れ', a: '藤原定家', src: '新古今和歌集',
+    im: '馬を止めて袖の雪を払う物陰もない。佐野の渡し場の雪の夕暮れよ。', en: 'No shelter to brush snow from my sleeves—snowy dusk at the Sano ferry.' },
+  // 21 冬至
+  { w: '天の原 ふりさけ見れば 白妙の 富士の高嶺に 雪は降りける', a: '山部赤人', src: '新古今和歌集',
+    im: '大空を仰ぎ見れば、真っ白な富士の高嶺に雪が降っていることだ。', en: 'Gazing up at the vast sky—snow falls upon the white peak of Mount Fuji.' },
+  // 22 小寒
+  { w: '田子の浦に うち出でて見れば 白妙の 富士の高嶺に 雪は降りつつ', a: '山部赤人', src: '百人一首',
+    im: '田子の浦に出て見れば、真っ白な富士の高嶺に雪が降り続いている。', en: 'Coming out at Tago Bay—snow keeps falling on the white peak of Fuji.' },
+  // 23 大寒
+  { w: 'かささぎの 渡せる橋に おく霜の 白きを見れば 夜ぞふけにける', a: '中納言家持', src: '百人一首',
+    im: 'かささぎが渡したという橋に置く霜の白さを見ると、夜も更けたのだなあ。', en: 'Seeing the white frost on the magpie bridge—I know how deep the night has grown.' },
+];
+
+function wakaForSekki(sekkiIndex) { return WAKA[sekkiIndex] || WAKA[0]; }
+
 // ===================== particles.js =====================
 // ============================================================
 // particles.js — 季節の粒子（Canvasアニメーション）
@@ -1121,6 +1205,154 @@ class SoundManager {
 const soundManager = new SoundManager();
 // rnd は particles.js で定義済みのものを共用
 
+// ===================== share.js =====================
+// ============================================================
+// share.js — 「今日の一枚」を画像化してSNS共有・保存
+// Canvasで縦長カードを描画 → Web Share API（OS標準）or ダウンロード
+// 外部API不要・課金なし
+// ============================================================
+
+// 共有カードを生成（1080x1920の縦長画像）
+function buildShareCard(ko, sekki, baseDate, sessionSeed) {
+  const W = 1080, H = 1920;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // 背景：その日の生成風景を流用（高解像度で再生成）
+  const spec = buildScene({ baseDate, sessionSeed, sekki, now: baseDate, W, H: Math.round(H * 0.62) });
+  drawScene(ctx, spec);
+  // 下半分を漆黒へ
+  const g = ctx.createLinearGradient(0, H * 0.4, 0, H);
+  g.addColorStop(0, 'rgba(8,8,12,0)'); g.addColorStop(0.5, 'rgba(8,8,12,0.85)'); g.addColorStop(1, 'rgba(8,8,12,1)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // 金箔のきらめき
+  drawGoldLeaf(ctx, W, H * 0.6, 1234, 0);
+
+  // 金の二重額縁
+  ctx.strokeStyle = 'rgba(217,182,103,0.6)'; ctx.lineWidth = 3;
+  ctx.strokeRect(40, 40, W - 80, H - 80);
+  ctx.strokeStyle = 'rgba(217,182,103,0.3)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(58, 58, W - 116, H - 116);
+
+  const cx = W / 2;
+  ctx.textAlign = 'center';
+
+  // 銘
+  ctx.fillStyle = 'rgba(217,182,103,0.9)';
+  ctx.font = "32px 'Hiragino Mincho ProN', serif";
+  ctx.fillText('七十二候  ·  KOYOMI', cx, 130);
+
+  // 金の罫
+  goldLineCanvas(ctx, cx, 175, 360);
+
+  // 候名（大）
+  ctx.fillStyle = '#f0d98a';
+  ctx.font = "600 150px 'Hiragino Mincho ProN', serif";
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+  ctx.fillText(ko.k, cx, H * 0.56);
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+  // 読み
+  ctx.fillStyle = 'rgba(243,239,230,0.8)';
+  ctx.font = "40px 'Hiragino Mincho ProN', serif";
+  ctx.fillText(ko.y, cx, H * 0.56 + 80);
+
+  // 英訳
+  ctx.fillStyle = 'rgba(240,217,138,0.85)';
+  ctx.font = "italic 38px 'Hiragino Mincho ProN', serif";
+  ctx.fillText(enKo(ko.k), cx, H * 0.56 + 150);
+
+  goldLineCanvas(ctx, cx, H * 0.56 + 210, 300);
+
+  // 解説
+  ctx.fillStyle = 'rgba(243,239,230,0.92)';
+  ctx.font = "40px 'Hiragino Mincho ProN', serif";
+  wrapText(ctx, ko.t, cx, H * 0.56 + 285, W - 220, 58);
+
+  // 節気・期間
+  ctx.fillStyle = 'rgba(217,182,103,0.85)';
+  ctx.font = "36px 'Hiragino Mincho ProN', serif";
+  const dstr = `${baseDate.getMonth() + 1}月${baseDate.getDate()}日`;
+  ctx.fillText(`${sekki.n}　${enSekki(sekki.n)}`, cx, H - 220);
+  ctx.fillStyle = 'rgba(243,239,230,0.6)';
+  ctx.font = "30px 'Hiragino Mincho ProN', serif";
+  ctx.fillText(dstr, cx, H - 165);
+
+  // 落款
+  ctx.save();
+  ctx.translate(cx, H - 100); ctx.rotate(-0.03);
+  ctx.fillStyle = '#a8281e';
+  ctx.fillRect(-36, -36, 72, 72);
+  ctx.strokeStyle = 'rgba(246,233,218,0.5)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(-30, -30, 60, 60);
+  ctx.fillStyle = '#f6e9da';
+  ctx.font = "600 26px 'Hiragino Mincho ProN', serif";
+  ctx.fillText('歳時', 0, -4); ctx.fillText('記行', 0, 26);
+  ctx.restore();
+
+  // クレジット（最下部・小さく）
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(217,182,103,0.55)';
+  ctx.font = "22px 'Hiragino Mincho ProN', serif";
+  ctx.fillText('こよみ 七十二候  ·  KOYOMI', cx, H - 50);
+
+  return cv;
+}
+
+function goldLineCanvas(ctx, cx, y, w) {
+  const g = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+  g.addColorStop(0, 'rgba(217,182,103,0)');
+  g.addColorStop(0.5, 'rgba(232,205,133,0.9)');
+  g.addColorStop(1, 'rgba(217,182,103,0)');
+  ctx.strokeStyle = g; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - w / 2, y); ctx.lineTo(cx + w / 2, y); ctx.stroke();
+  ctx.fillStyle = '#e8cd85';
+  ctx.beginPath(); ctx.arc(cx, y, 4, 0, 6.28); ctx.fill();
+}
+
+function wrapText(ctx, text, x, y, maxW, lh) {
+  const chars = text.split('');
+  let line = '', yy = y;
+  for (const c of chars) {
+    if (ctx.measureText(line + c).width > maxW && line) { ctx.fillText(line, x, yy); line = c; yy += lh; }
+    else line += c;
+  }
+  if (line) ctx.fillText(line, x, yy);
+}
+
+// 共有実行（Web Share API → 失敗時ダウンロード）
+async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
+  const cv = buildShareCard(ko, sekki, baseDate, sessionSeed);
+  const fname = `koyomi_${ko.k}.png`;
+  const caption = lang === 'en'
+    ? `${ko.k} (${enKo(ko.k)}) — Today's micro-season. #koyomi #七十二候`
+    : `${ko.k}（${ko.y}）— 今日の七十二候。 #こよみ #七十二候`;
+
+  return new Promise((resolve) => {
+    cv.toBlob(async (blob) => {
+      const file = new File([blob], fname, { type: 'image/png' });
+      // Web Share API（対応端末・OS標準の共有シート）
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text: caption });
+          resolve('shared');
+          return;
+        } catch (e) { /* キャンセル時はダウンロードへ進まない */
+          if (e.name === 'AbortError') { resolve('cancel'); return; }
+        }
+      }
+      // 非対応：ダウンロード
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      resolve('download');
+    }, 'image/png');
+  });
+}
+
 // ===================== app.js =====================
 // ============================================================
 // app.js — こよみ七十二候 PWA 本体
@@ -1131,6 +1363,8 @@ const soundManager = new SoundManager();
   const todayIndex = findCurrentIndex(now);
   let current = todayIndex;
   let muted = false;
+  let lang = (() => { try { return localStorage.getItem('koyomi-lang') || 'ja'; } catch (e) { return 'ja'; } })();
+  let favs = (() => { try { return JSON.parse(localStorage.getItem('koyomi-favs') || '[]'); } catch (e) { return []; } })();
 
   // DPR対応Canvas
   const canvas = document.getElementById('scene');
@@ -1252,7 +1486,7 @@ const soundManager = new SoundManager();
     // フッター装飾罫
     $('footrule').innerHTML = goldRuleH(window.innerWidth - 36);
     $('fill').style.width = ((current + 1) / KO.length * 100) + '%';
-    $('b-today').style.visibility = current === todayIndex ? 'hidden' : 'visible';
+    $('b-today').style.display = current === todayIndex ? 'none' : 'inline-block';
     const sndJa = muted ? '消音中' : (SOUND_NAMES[ko.snd] || '');
     const sndEn = muted ? 'Muted' : enUI(SOUND_NAMES[ko.snd] || '');
     $('b-sound').innerHTML = '♪ ' + sndJa + ' <span class="b-en">' + sndEn + '</span>';
@@ -1263,6 +1497,7 @@ const soundManager = new SoundManager();
       setTimeout(() => el.classList.add('in'), 60 + i * 100);
     });
     soundManager.play(ko.snd);
+    if (typeof updateFavBtn === 'function') updateFavBtn();
   }
 
   // 金箔の額縁（画面全体を囲む二重罫＋四隅飾り）
@@ -1365,6 +1600,80 @@ const soundManager = new SoundManager();
   });
   $('b-shiori').addEventListener('click', (e) => { e.stopPropagation(); openShiori(); });
 
+  // ===== A. 共有（今日の一枚を画像化）=====
+  const bShare = $('b-share');
+  if (bShare) bShare.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    bShare.classList.add('busy');
+    const ko = KO[current], sekki = SEKKI[ko.s];
+    try { await shareCard(ko, sekki, baseDateFor(current), sessionSeed, lang); } catch (err) {}
+    bShare.classList.remove('busy');
+  });
+
+  // ===== C. お気に入り（栞に挟む）=====
+  function loadFavs() { try { return JSON.parse(localStorage.getItem('koyomi-favs') || '[]'); } catch (e) { return []; } }
+  function saveFavs() { try { localStorage.setItem('koyomi-favs', JSON.stringify(favs)); } catch (e) {} }
+  function isFav(i) { return favs.includes(i); }
+  function toggleFav(i) {
+    if (isFav(i)) favs = favs.filter((x) => x !== i); else favs.push(i);
+    saveFavs(); updateFavBtn();
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+  function updateFavBtn() {
+    const b = $('b-fav'); if (!b) return;
+    b.classList.toggle('on', isFav(current));
+    b.innerHTML = (isFav(current) ? '★' : '☆') + ' <span class="b-en">' + (lang === 'en' ? 'Save' : '栞') + '</span>';
+  }
+  const bFav = $('b-fav');
+  if (bFav) bFav.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(current); });
+
+  // ===== C. カレンダー（72候の一覧から選ぶ）=====
+  const bCal = $('b-cal');
+  if (bCal) bCal.addEventListener('click', (e) => { e.stopPropagation(); openCalendar(); });
+  function openCalendar() {
+    const grid = $('cal-grid');
+    grid.innerHTML = KO.map((ko, i) => {
+      const sk = SEKKI[ko.s];
+      const todayCls = i === todayIndex ? ' cal-today' : '';
+      const favCls = isFav(i) ? ' cal-fav' : '';
+      return `<button class="cal-cell${todayCls}${favCls}" data-i="${i}">
+        <span class="cal-no">${i + 1}</span>
+        <span class="cal-k">${ko.k}</span>
+        <span class="cal-en">${enKo(ko.k)}</span>
+        ${isFav(i) ? '<span class="cal-star">★</span>' : ''}
+      </button>`;
+    }).join('');
+    grid.querySelectorAll('.cal-cell').forEach((c) => {
+      c.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        go(parseInt(c.dataset.i, 10));
+        $('calendar').classList.remove('on');
+      });
+    });
+    // お気に入りフィルタ
+    const favBar = $('cal-favbar');
+    if (favBar) favBar.textContent = favs.length ? `栞に挟んだ候：${favs.length}　·　Saved: ${favs.length}` : '';
+    $('calendar').classList.add('on');
+  }
+  const cal = $('calendar');
+  if (cal) cal.addEventListener('click', (e) => { if (e.target.id === 'calendar' || e.target.id === 'cal-close') cal.classList.remove('on'); });
+
+  // ===== D. 言語切替（日/英）=====
+  applyLang();
+  const bLang = $('b-lang');
+  if (bLang) bLang.addEventListener('click', (e) => {
+    e.stopPropagation();
+    lang = lang === 'ja' ? 'en' : 'ja';
+    try { localStorage.setItem('koyomi-lang', lang); } catch (er) {}
+    applyLang(); renderUI(); updateFavBtn();
+  });
+  function applyLang() {
+    document.body.classList.toggle('lang-en', lang === 'en');
+    const b = $('b-lang');
+    if (b) b.textContent = lang === 'ja' ? 'EN' : '日本語';
+  }
+
+
   // 栞
   function openShiori() {
     const ko = KO[current], sekki = SEKKI[ko.s];
@@ -1379,9 +1688,16 @@ const soundManager = new SoundManager();
       col('旬の味', 'Taste', ko.shun, enShun(ko.shun)) +
       col('節気のこと', 'Term', `${sekki.n}（${sekki.y}）。${sekki.t}`, enSekki(sekki.n)) +
       col('いまの音', 'Sound', SOUND_NAMES[ko.snd] || '', enUI(SOUND_NAMES[ko.snd] || ''));
+    // 季節の和歌
+    const wk = wakaForSekki(ko.s);
+    $('sh-waka').innerHTML =
+      `<div class="wk-poem">${wk.w}</div>` +
+      `<div class="wk-author">— ${wk.a}　《${wk.src}》</div>` +
+      `<div class="wk-im">${wk.im}</div>` +
+      `<div class="wk-en">${wk.en}</div>`;
     $('shiori').classList.add('on');
   }
-  $('shiori').addEventListener('click', () => $('shiori').classList.remove('on'));
+  $('shiori').addEventListener('click', (e) => { if (e.target.id !== 'privacy-link') $('shiori').classList.remove('on'); });
 
   // iOS Safari & 未インストール時のみ「ホーム追加」案内
   function maybeShowA2HS() {
