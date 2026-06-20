@@ -1,7 +1,6 @@
 // ============================================================
-// こよみ 七十二候 — 全ロジック1ファイル版（豪華装飾版）
+// こよみ 七十二候 — 全ロジック1ファイル版（豪華装飾・回転羅針盤・72表情・劇的演出版）
 // data + i18n + engine + ornate + particles + sound(synth) + app
-// 音はWeb Audioで合成。装飾はSVG/Canvas。背景画像はimg/参照（無くても動作）。
 // ============================================================
 
 // ===================== data.js =====================
@@ -765,35 +764,51 @@ function cornerOrnamentSVG() {
   return c;
 }
 
-// ---- 二十四節気の羅針盤（現在の節気を指し示す）----
-// SVG文字列を生成。sekkiIndex=0-23 で針が回る
-function compassSVG(sekkiIndex, size) {
+// ---- 二十四節気の羅針盤（回転アニメーション対応）----
+// 外周の節気リングが回転し、現在の節気が常に頂点（針の位置）に来る
+// 返り値: { svg, ringId } — ringIdの<g>をCSS/JSで回転させる
+function compassSVG(sekkiIndex, size, uid) {
+  uid = uid || 'c';
   const cx = size / 2, cy = size / 2;
-  const rOuter = size * 0.46, rInner = size * 0.33, rText = size * 0.40;
+  const rOuter = size * 0.46, rInner = size * 0.33, rText = size * 0.405;
   let ticks = '', labels = '';
   for (let i = 0; i < 24; i++) {
     const ang = (i / 24) * Math.PI * 2 - Math.PI / 2;
     const x1 = cx + Math.cos(ang) * rOuter, y1 = cy + Math.sin(ang) * rOuter;
     const x2 = cx + Math.cos(ang) * rInner, y2 = cy + Math.sin(ang) * rInner;
     const major = i % 6 === 0;
-    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${major ? '#e8cd85' : 'rgba(217,182,103,0.45)'}" stroke-width="${major ? 1.3 : 0.6}"/>`;
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${major ? '#e8cd85' : 'rgba(217,182,103,0.4)'}" stroke-width="${major ? 1.2 : 0.5}"/>`;
     const tx = cx + Math.cos(ang) * rText, ty = cy + Math.sin(ang) * rText;
-    const active = i === sekkiIndex;
-    labels += `<text x="${tx.toFixed(1)}" y="${(ty + 3).toFixed(1)}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="${active ? 11 : 8}" fill="${active ? '#fff' : 'rgba(217,182,103,0.7)'}" font-weight="${active ? '600' : '400'}">${COMPASS_SEKKI[i][0]}</text>`;
+    // 文字は読みやすいよう、各位置で正立させる回転を打ち消す
+    labels += `<text x="${tx.toFixed(1)}" y="${(ty + 3).toFixed(1)}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="8" fill="rgba(217,182,103,0.78)" data-i="${i}">${COMPASS_SEKKI[i][0]}</text>`;
   }
-  // 針
-  const needleAng = (sekkiIndex / 24) * Math.PI * 2 - Math.PI / 2;
-  const nx = cx + Math.cos(needleAng) * rInner * 0.92;
-  const ny = cy + Math.sin(needleAng) * rInner * 0.92;
+  // リング全体を「現在の節気が頂点(-90°)に来る」よう回転させる初期角
+  const ringRot = -(sekkiIndex / 24) * 360;
   return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-    <circle cx="${cx}" cy="${cy}" r="${rOuter + 4}" fill="none" stroke="rgba(217,182,103,0.3)" stroke-width="0.8"/>
-    <circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="rgba(8,8,12,0.55)" stroke="#bfa24a" stroke-width="1"/>
-    <circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="rgba(217,182,103,0.4)" stroke-width="0.7"/>
-    ${ticks}${labels}
-    <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#e8cd85" stroke-width="1.6"/>
+    <circle cx="${cx}" cy="${cy}" r="${rOuter + 4}" fill="none" stroke="rgba(217,182,103,0.28)" stroke-width="0.8"/>
+    <circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="rgba(8,8,12,0.5)" stroke="#bfa24a" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="rgba(217,182,103,0.35)" stroke-width="0.6"/>
+    <g class="compass-ring" id="ring-${uid}" style="transform-origin:${cx}px ${cy}px; transform:rotate(${ringRot}deg); transition:transform 1.4s cubic-bezier(.34,.01,.2,1)">
+      ${ticks}${labels}
+    </g>
+    <g class="compass-needle" style="transform-origin:${cx}px ${cy}px">
+      <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${(cy - rInner * 0.92).toFixed(1)}" stroke="#e8cd85" stroke-width="1.6"/>
+      <circle cx="${cx}" cy="${(cy - rInner * 0.92).toFixed(1)}" r="2.4" fill="#fff"/>
+      <text x="${cx}" y="${(cy - rOuter - 2).toFixed(1)}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="9" fill="#fff" font-weight="600">▼</text>
+    </g>
     <circle cx="${cx}" cy="${cy}" r="3.2" fill="#e8cd85"/>
-    <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="2.2" fill="#fff"/>
+    <circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="rgba(217,182,103,0.15)" stroke-width="6"/>
   </svg>`;
+}
+
+// 羅針盤のリングを指定節気へ回す（既に描画済みの羅針盤に対して）
+function spinCompass(containerId, sekkiIndex, uid) {
+  uid = uid || 'c';
+  const ring = document.querySelector(`#${containerId} #ring-${uid}`);
+  if (ring) {
+    const rot = -(sekkiIndex / 24) * 360;
+    ring.style.transform = `rotate(${rot}deg)`;
+  }
 }
 
 // ---- 装飾的な金の罫線（縦・横）----
@@ -1218,8 +1233,16 @@ const soundManager = new SoundManager();
     $('desc').textContent = ko.t;
     // 落款（SVG）
     $('hanko').innerHTML = hankoSVG('歳時記行', 34);
-    // 羅針盤（現在の節気を指す）
-    $('compass').innerHTML = compassSVG(ko.s, 94);
+    // 羅針盤（現在の節気へ回転）
+    const compassEl = $('compass');
+    if (!compassEl.dataset.built) {
+      compassEl.innerHTML = compassSVG(ko.s, 94, 'main');
+      compassEl.dataset.built = '1';
+      compassEl.dataset.sekki = ko.s;
+    } else if (compassEl.dataset.sekki != ko.s) {
+      spinCompass('compass', ko.s, 'main');
+      compassEl.dataset.sekki = ko.s;
+    }
     // 脇情報
     $('side').querySelector('.sekki').innerHTML =
       `${sekki.n}　${rangeLabel(current)}<br><span class="s-en">${enSekki(sekki.n)}</span>`;
@@ -1261,14 +1284,34 @@ const soundManager = new SoundManager();
     `;
   }
 
-  // 節気index(0-23)から季節背景を割り当て
+  // 候ごとに背景の表情を変える（4枚の季節写真をベースに72通りの見え方）
   let curSeason = null;
   function setSeasonBg(sekkiIndex) {
+    const ko = KO[current];
     const season = sekkiIndex < 6 ? 'spring' : sekkiIndex < 12 ? 'summer' : sekkiIndex < 18 ? 'autumn' : 'winter';
-    if (season === curSeason) return;
-    curSeason = season;
     const bg = document.getElementById('season-bg');
-    if (bg) bg.style.backgroundImage = `url('img/bg_${season}.jpg')`;
+    if (!bg) return;
+    if (season !== curSeason) {
+      curSeason = season;
+      bg.style.backgroundImage = `url('img/bg_${season}.jpg')`;
+    }
+    // 候ごとに表情を変える（節気内の進行度 0..1 と 候indexで決定論的に）
+    // 節気内の位置（0,1,2）と全体進行で、ズーム・位置・色調を変える
+    const within = current % 3;           // 節気内の候位置 0,1,2
+    const prog = current / 71;            // 一年の進行 0..1
+    const zoom = 1.04 + within * 0.05;    // 候が進むごとに少しズーム
+    const posX = 30 + within * 20;        // 横位置をずらす
+    const posY = 35 + (prog * 30 % 30);   // 縦位置を移ろわせる
+    // 刻に応じた色温度（朝は暖色、夜は寒色）
+    const todName = spec ? spec.tod.n : '昼';
+    const warm = (todName === '暁' || todName === '夕') ? 1 : (todName === '夜半' || todName === '宵') ? 0 : 0.5;
+    const hue = warm > 0.6 ? 8 : warm < 0.3 ? -12 : 0;
+    const bright = (todName === '夜半') ? 0.62 : (todName === '宵' || todName === '暁') ? 0.78 : 0.95;
+    const sat = 0.85 + within * 0.06;
+    bg.style.backgroundSize = `${zoom * 100}%`;
+    bg.style.backgroundPosition = `${posX}% ${posY}%`;
+    bg.style.filter = `brightness(${bright}) saturate(${sat}) hue-rotate(${hue}deg)`;
+    bg.style.transition = 'background-position 1.6s ease, background-size 1.6s ease, filter 1.4s ease, opacity 1.4s ease';
   }
 
   // ページ送り
@@ -1370,7 +1413,9 @@ const soundManager = new SoundManager();
     ov.id = 'opening';
     ov.innerHTML = `
       <div id="op-bg"></div>
+      <div id="op-rays"></div>
       <div id="op-veil"></div>
+      <canvas id="op-flakes"></canvas>
       <div id="op-inner">
         <div class="op-line op-l1"></div>
         <div class="op-title">こよみ</div>
@@ -1386,7 +1431,7 @@ const soundManager = new SoundManager();
           <div class="op-today-en">${enKo(ko.k)}</div>
         </div>
 
-        <div class="op-compass">${compassSVG(ko.s, 120)}</div>
+        <div class="op-compass">${compassSVG(ko.s, 120, 'op')}</div>
         <div class="op-compass-label">二十四節気 · The 24 Solar Terms</div>
 
         <div class="op-guide">
@@ -1402,17 +1447,65 @@ const soundManager = new SoundManager();
     `;
     document.body.appendChild(ov);
     injectOpeningCSS();
+    startOpeningFlakes();
     requestAnimationFrame(() => ov.classList.add('op-in'));
+    // 羅針盤を一周回してから現在位置へ収める演出
+    setTimeout(() => {
+      const ring = document.querySelector('#ring-op');
+      if (ring) {
+        const target = -(ko.s / 24) * 360;
+        ring.style.transition = 'transform 2.6s cubic-bezier(.22,.61,.36,1)';
+        ring.style.transform = `rotate(${target - 720}deg)`;  // 2周ぶん回す
+      }
+    }, 3000);
 
     function closeOpening() {
       soundManager.unlock();
       ov.classList.add('op-out');
       if (navigator.vibrate) navigator.vibrate(12);
+      stopOpeningFlakes();
       setTimeout(() => { ov.remove(); maybeShowA2HS(); }, 1000);
     }
     document.getElementById('op-start').addEventListener('click', (e) => { e.stopPropagation(); closeOpening(); });
     ov.addEventListener('click', closeOpening);
   }
+
+  // オープニングの金箔舞い（Canvas）
+  let opFlakeRaf = null;
+  function startOpeningFlakes() {
+    const c = document.getElementById('op-flakes');
+    if (!c) return;
+    const cx = c.getContext('2d');
+    let W = window.innerWidth, H = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = W * dpr; c.height = H * dpr; cx.scale(dpr, dpr);
+    const flakes = Array.from({ length: 40 }, () => ({
+      x: Math.random() * W, y: Math.random() * H - H,
+      vy: 12 + Math.random() * 30, vx: (Math.random() - 0.5) * 14,
+      r: 1 + Math.random() * 3.5, o: 0.3 + Math.random() * 0.5,
+      sway: Math.random() * 6.28, ss: 0.5 + Math.random() * 1.5,
+      rot: Math.random() * 6.28,
+    }));
+    let last = performance.now();
+    function loop(t) {
+      const dt = Math.min((t - last) / 1000, 0.05); last = t;
+      cx.clearRect(0, 0, W, H);
+      flakes.forEach((f) => {
+        f.y += f.vy * dt; f.sway += f.ss * dt; f.rot += dt;
+        const dx = Math.sin(f.sway) * 18;
+        if (f.y > H + 10) { f.y = -10; f.x = Math.random() * W; }
+        cx.save();
+        cx.globalAlpha = f.o * (0.6 + 0.4 * Math.sin(f.sway));
+        cx.fillStyle = Math.random() < 0.5 ? '#e3c878' : '#f0d98a';
+        cx.translate(f.x + dx, f.y); cx.rotate(f.rot);
+        cx.fillRect(-f.r / 2, -f.r / 2, f.r, f.r * 1.6);
+        cx.restore();
+      });
+      opFlakeRaf = requestAnimationFrame(loop);
+    }
+    opFlakeRaf = requestAnimationFrame(loop);
+  }
+  function stopOpeningFlakes() { if (opFlakeRaf) cancelAnimationFrame(opFlakeRaf); opFlakeRaf = null; }
 
   function injectOpeningCSS() {
     if (document.getElementById('op-css')) return;
@@ -1425,10 +1518,18 @@ const soundManager = new SoundManager();
       #opening.op-out { opacity: 0; }
       #op-bg { position: absolute; inset: 0; background-image: url('img/opening.jpg');
         background-size: cover; background-position: center;
-        transform: scale(1.08); transition: transform 8s ease-out;
-        animation: opKen 24s ease-in-out infinite alternate; }
-      #opening.op-in #op-bg { transform: scale(1.0); }
-      @keyframes opKen { 0% { background-position: 50% 30%; } 100% { background-position: 50% 70%; } }
+        transform: scale(1.18); filter: brightness(0.4) blur(4px);
+        transition: transform 6s ease-out, filter 4s ease-out;
+        animation: opKen 28s ease-in-out infinite alternate; }
+      #opening.op-in #op-bg { transform: scale(1.02); filter: brightness(0.92) blur(0); }
+      @keyframes opKen { 0% { background-position: 50% 35%; } 100% { background-position: 50% 65%; } }
+      #op-rays { position: absolute; inset: 0; pointer-events: none; opacity: 0;
+        background: radial-gradient(ellipse 60% 40% at 50% 18%, rgba(240,217,138,.22) 0%, transparent 60%);
+        transition: opacity 2.5s ease; }
+      #opening.op-in #op-rays { opacity: 1; transition-delay: 1s; }
+      #op-flakes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0;
+        transition: opacity 2s ease; }
+      #opening.op-in #op-flakes { opacity: 1; transition-delay: 1.5s; }
       #op-veil { position: absolute; inset: 0;
         background: radial-gradient(ellipse at center, rgba(8,8,10,.35) 0%, rgba(8,8,10,.72) 70%, rgba(8,8,10,.92) 100%); }
       #op-inner { position: relative; text-align: center; padding: 28px 24px;
@@ -1441,10 +1542,10 @@ const soundManager = new SoundManager();
       #opening.op-in .op-l2 { width: 50%; transition-delay: 2.2s; }
 
       .op-title { font-size: 56px; letter-spacing: 16px; color: #f0d98a; font-weight: 600;
-        margin-top: 22px; text-shadow: 0 2px 30px rgba(0,0,0,.9), 0 0 14px rgba(217,182,103,.3);
-        opacity: 0; transform: translateY(18px); filter: blur(8px);
-        transition: opacity 1.4s ease, transform 1.4s ease, filter 1.4s ease; }
-      #opening.op-in .op-title { opacity: 1; transform: none; filter: blur(0); transition-delay: .5s; }
+        margin-top: 22px; text-shadow: 0 2px 30px rgba(0,0,0,.9), 0 0 24px rgba(240,217,138,.4);
+        opacity: 0; transform: translateY(24px) scale(1.3); filter: blur(14px);
+        transition: opacity 1.8s ease, transform 1.8s cubic-bezier(.2,.7,.3,1), filter 1.8s ease; }
+      #opening.op-in .op-title { opacity: 1; transform: none; filter: blur(0); transition-delay: .6s; }
       .op-title-en { font-size: 10px; letter-spacing: 9px; color: rgba(240,217,138,.8);
         margin-top: 8px; opacity: 0; transition: opacity 1.2s ease; }
       #opening.op-in .op-title-en { opacity: 1; transition-delay: 1.1s; }
