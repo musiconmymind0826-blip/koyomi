@@ -1406,6 +1406,8 @@ const soundManager = new SoundManager();
   window.addEventListener('pointerdown', unlockOnce);
 
   // ===== オープニング画面（添付ビジュアル背景・英訳併記）=====
+  // ===== オープニング画面（添付ビジュアル背景・英訳併記）=====
+  let opFlakeRaf = null;
   showOpening();
   function showOpening() {
     const ko = KO[todayIndex];
@@ -1471,7 +1473,6 @@ const soundManager = new SoundManager();
   }
 
   // オープニングの金箔舞い（Canvas）
-  let opFlakeRaf = null;
   function startOpeningFlakes() {
     const c = document.getElementById('op-flakes');
     if (!c) return;
