@@ -11,149 +11,142 @@
 <link rel="manifest" href="manifest.webmanifest">
 <title>こよみ 七十二候</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  :root { --gold:#d9b667; --gold2:#e8cd85; --paper:#f3efe6; --ink:#08080a; }
-  html, body { height: 100%; background: var(--ink); overflow: hidden; overscroll-behavior: none; }
-  body {
-    font-family: "Hiragino Mincho ProN", "Shippori Mincho B1", "Yu Mincho", "Noto Serif JP", serif;
-    color: var(--paper); user-select: none; -webkit-user-select: none;
-    touch-action: pan-y;
-  }
-  #stage { position: fixed; inset: 0; }
-  #scene { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #ui { position: absolute; inset: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root { --gold:#d9b667; --gold2:#e8cd85; --gold3:#f0d98a; --paper:#f3efe6; --ink:#08080a; --shu:#a8281e; }
+  html,body { height:100%; background:var(--ink); overflow:hidden; overscroll-behavior:none; }
+  body { font-family:"Hiragino Mincho ProN","Shippori Mincho B1","Yu Mincho","Noto Serif JP",serif;
+    color:var(--paper); user-select:none; -webkit-user-select:none; touch-action:pan-y; }
+  #stage { position:fixed; inset:0; }
+  #season-bg { position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity 1.4s ease; }
+  #season-tint { position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,8,12,.55) 0%, rgba(8,8,12,.32) 40%, rgba(8,8,12,.72) 100%); }
+  #scene { position:absolute; inset:0; width:100%; height:100%; opacity:.7; mix-blend-mode:screen; }
+  #ui { position:absolute; inset:0; }
+  .v { writing-mode:vertical-rl; text-orientation:upright; }
 
-  .v { writing-mode: vertical-rl; text-orientation: upright; }
+  #goldframe { position:absolute; inset:0; pointer-events:none; z-index:50; }
 
-  /* 銘 */
-  #brand { position: absolute; top: max(20px, env(safe-area-inset-top)); left: 22px; }
-  #brand .t { font-size: 17px; letter-spacing: 7px; }
-  #brand .s { font-size: 9px; letter-spacing: 4px; color: rgba(217,182,103,.8); margin-top: 3px; }
+  #brand { position:absolute; top:max(18px,env(safe-area-inset-top)); left:18px; z-index:20; }
+  #brand .t { font-size:16px; letter-spacing:6px; color:var(--gold3); text-shadow:0 2px 12px rgba(0,0,0,.8); }
+  #brand .s { font-size:8px; letter-spacing:3px; color:rgba(217,182,103,.85); margin-top:3px; }
 
-  /* 枠ラベル */
-  #frame {
-    position: absolute; top: max(20px, env(safe-area-inset-top)); right: 18px;
-    border: 1px solid rgba(217,182,103,.85); background: rgba(8,8,10,.42);
-    padding: 9px 6px; text-align: center; line-height: 1.5;
-  }
-  #frame .fc { font-size: 12.5px; color: var(--gold); display:block; }
-  #frame .div { width: 13px; height: 1px; background: rgba(217,182,103,.85); margin: 6px auto; }
-  #today-mark {
-    margin-top: 7px; background: #a8281e; color: #f6e9da; font-size: 10px;
-    padding: 3px 4px; transform: rotate(2deg); letter-spacing: 1px;
-  }
+  #frame { position:absolute; top:max(16px,env(safe-area-inset-top)); right:16px; z-index:20;
+    border:1px solid rgba(217,182,103,.9); background:rgba(8,8,12,.5);
+    padding:9px 6px; text-align:center; box-shadow:0 0 14px rgba(0,0,0,.5), inset 0 0 8px rgba(217,182,103,.08); }
+  #frame::before { content:''; position:absolute; inset:3px; border:0.5px solid rgba(217,182,103,.4); pointer-events:none; }
+  #frame .fc { font-size:12px; color:var(--gold); line-height:1.55; display:block; }
+  #frame .div { width:13px; height:1px; background:rgba(217,182,103,.85); margin:6px auto; }
+  #frame .fc-en { font-size:7px; letter-spacing:.3px; color:rgba(243,239,230,.6); margin-top:6px; max-width:32px; line-height:1.3; }
+  #today-mark { margin-top:8px; background:var(--shu); color:#f6e9da; font-size:9px;
+    padding:4px 4px; transform:rotate(2deg); line-height:1.3; box-shadow:0 2px 5px rgba(0,0,0,.5); }
+  .tm-en { font-size:6.5px; letter-spacing:1px; }
 
-  /* 題字 */
-  #title { position: absolute; top: 14%; left: 26px; display: flex; align-items: flex-start; }
-  #title .kanji { font-size: var(--ts, 64px); color: var(--gold2); font-weight: 600;
-    text-shadow: 0 3px 16px rgba(0,0,0,.65); line-height: 1.12; }
-  #title .ruby { margin-left: 6px; padding-top: 12px; }
-  #title .ruby span { font-size: 12px; color: rgba(217,182,103,.92); display:block;
-    line-height: 1.3; text-align:center; text-shadow: 0 1px 5px rgba(0,0,0,.6); }
+  #title { position:absolute; top:15%; left:24px; z-index:15; display:flex; align-items:flex-start; }
+  #title .kanji { font-size:var(--ts,62px); color:var(--gold3); font-weight:600; line-height:1.1;
+    text-shadow:0 3px 20px rgba(0,0,0,.85), 0 0 16px rgba(217,182,103,.25), 1px 1px 0 rgba(120,90,30,.4); }
+  #title .ruby { margin-left:6px; padding-top:10px; }
+  #title .ruby span { font-size:11px; color:rgba(217,182,103,.95); display:block; line-height:1.35; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,.7); }
+  #title-en { position:absolute; top:15%; left:24px; margin-top:-20px; z-index:15;
+    font-size:11px; letter-spacing:1.5px; color:rgba(240,217,138,.9); max-width:160px; line-height:1.4; font-style:italic; text-shadow:0 1px 8px rgba(0,0,0,.85); }
 
-  /* 解説（左下） */
-  #desc { position: absolute; left: 22px; bottom: 132px; max-height: 42%;
-    font-size: 14.5px; line-height: 1.5; letter-spacing: 1px;
-    text-shadow: 0 1px 6px rgba(0,0,0,.55); }
-  #hanko {
-    position: absolute; left: 22px; bottom: 100px;
-    background: #a8281e; color: #f6e9da; padding: 5px 6px; font-size: 12px;
-    transform: rotate(-2.5deg); line-height: 1.25; width: 30px; text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,.4); font-weight: 600;
-  }
+  #desc { position:absolute; left:20px; bottom:140px; max-height:40%; z-index:15;
+    font-size:14px; line-height:1.55; letter-spacing:1px; color:rgba(243,239,230,.95); text-shadow:0 1px 8px rgba(0,0,0,.85); }
+  #hanko { position:absolute; left:20px; bottom:100px; width:34px; height:34px; z-index:15; filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 
-  /* 脇情報（右下） */
-  #side { position: absolute; right: 22px; bottom: 132px; text-align: center;
-    font-size: 11.5px; line-height: 1.4; letter-spacing: 1px; }
-  #side .sekki { color: rgba(243,239,230,.78); }
-  #side .toki { color: var(--gold); margin-top: 10px; }
+  #side { position:absolute; right:18px; bottom:128px; z-index:15; text-align:center; }
+  #compass { width:94px; height:94px; margin:0 auto 12px; filter:drop-shadow(0 0 10px rgba(217,182,103,.2)); }
+  #side .sekki { font-size:11px; line-height:1.4; color:rgba(243,239,230,.85); text-shadow:0 1px 6px rgba(0,0,0,.8); }
+  #side .toki { font-size:11px; line-height:1.4; color:var(--gold); margin-top:10px; text-shadow:0 1px 6px rgba(0,0,0,.8); }
+  #side .s-en { font-size:8px; letter-spacing:.3px; color:rgba(240,217,138,.7); font-style:italic; }
 
-  /* フッター */
-  #footer { position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 0 22px calc(20px + env(safe-area-inset-bottom)); }
-  #btns { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .btn { border: 1px solid rgba(217,182,103,.75); background: rgba(8,8,10,.5);
-    color: var(--gold); font-size: 11.5px; letter-spacing: 2px; padding: 6px 12px;
-    font-family: inherit; cursor: pointer; }
-  .btn.off { color: rgba(243,239,230,.45); }
-  #track { height: 2px; background: rgba(243,239,230,.14); }
-  #fill { height: 2px; background: var(--gold); transition: width .3s; }
-  #hint { font-size: 9px; letter-spacing: 1px; color: rgba(243,239,230,.5);
-    text-align: center; margin-top: 8px; }
+  #footer { position:absolute; left:0; right:0; bottom:0; padding:0 18px calc(16px + env(safe-area-inset-bottom)); z-index:20; }
+  #footrule { height:8px; margin-bottom:8px; }
+  #btns { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .btn { border:1px solid rgba(217,182,103,.8); background:rgba(8,8,12,.55);
+    color:var(--gold); font-size:11px; letter-spacing:2px; padding:6px 12px; font-family:inherit; cursor:pointer;
+    box-shadow:inset 0 0 6px rgba(217,182,103,.06); }
+  .btn .b-en { font-size:7.5px; letter-spacing:.3px; color:rgba(243,239,230,.5); }
+  .btn.off { color:rgba(243,239,230,.45); }
+  #track { height:2px; background:rgba(243,239,230,.14); }
+  #fill { height:2px; background:linear-gradient(90deg,#bfa24a,#f0d98a); box-shadow:0 0 6px rgba(217,182,103,.4); transition:width .4s; }
+  #hint { font-size:8.5px; letter-spacing:1px; color:rgba(243,239,230,.55); text-align:center; margin-top:7px; }
 
-  /* 栞 */
-  #shiori { position: absolute; inset: 0; background: rgba(5,5,8,.66);
-    display: none; align-items: center; justify-content: center; padding: 22px; }
-  #shiori.on { display: flex; }
-  #sheet { border: 1px solid rgba(217,182,103,.7); background: rgba(10,10,13,.94);
-    padding: 22px 18px; width: 100%; max-width: 380px; text-align: center; }
-  #sheet h2 { font-size: 15px; color: var(--gold); letter-spacing: 4px; font-weight: 400; }
-  #sheet .hr { width: 52%; height: 1px; background: rgba(217,182,103,.7); margin: 14px auto; }
-  #cols { display: flex; flex-direction: row-reverse; justify-content: center; gap: 18px; }
-  #cols .col { max-width: 80px; }
-  #cols .ct { color: rgba(217,182,103,.95); font-size: 11px; line-height: 1.4; margin-bottom: 6px; }
-  #cols .cr { width: 12px; height: 1px; background: rgba(217,182,103,.6); margin: 0 auto 8px; }
-  #cols .cb { font-size: 13.5px; line-height: 1.5; }
-  #sheet .note { font-size: 9.5px; color: rgba(243,239,230,.45); margin-top: 18px; }
-  #sheet .close { font-size: 10.5px; color: rgba(243,239,230,.6); margin-top: 8px; letter-spacing: 3px; }
+  #shiori { position:absolute; inset:0; background:rgba(5,5,8,.72); z-index:100;
+    display:none; align-items:center; justify-content:center; padding:20px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+  #shiori.on { display:flex; }
+  #sheet { position:relative; border:1px solid rgba(217,182,103,.75); background:rgba(10,10,14,.95);
+    padding:24px 18px 20px; width:100%; max-width:390px; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,.7), inset 0 0 20px rgba(217,182,103,.05); }
+  #sheet::before { content:''; position:absolute; inset:5px; border:0.5px solid rgba(217,182,103,.35); pointer-events:none; }
+  #sh-head { font-size:15px; color:var(--gold2); letter-spacing:4px; font-weight:400; }
+  .sh-en { font-size:10px; letter-spacing:1px; color:rgba(240,217,138,.8); font-style:italic; display:block; margin-top:4px; }
+  #sh-rule { height:8px; margin:14px auto; width:60%; }
+  #cols { display:flex; flex-direction:row-reverse; justify-content:center; gap:18px; padding-top:4px; }
+  #cols .col { max-width:80px; }
+  #cols .ct { color:rgba(217,182,103,.95); font-size:11px; line-height:1.4; margin-bottom:6px; }
+  #cols .cr { width:12px; height:1px; background:rgba(217,182,103,.6); margin:0 auto 8px; }
+  #cols .cb { font-size:13px; line-height:1.5; }
+  #cols .cb-en { writing-mode:horizontal-tb; font-size:8.5px; letter-spacing:.3px; color:rgba(240,217,138,.7); margin-top:8px; max-width:76px; line-height:1.3; text-align:center; font-style:italic; }
+  #sheet .note { font-size:9px; color:rgba(243,239,230,.45); margin-top:18px; }
+  #sheet .close { font-size:10px; color:rgba(243,239,230,.6); margin-top:8px; letter-spacing:3px; }
 
-  /* 入場フェード */
-  .fade { opacity: 0; transform: translateY(14px); transition: opacity .9s, transform .9s; }
-  .fade.in { opacity: 1; transform: none; }
+  .fade { opacity:0; transform:translateY(14px); transition:opacity .9s, transform .9s; }
+  .fade.in { opacity:1; transform:none; }
 
-  /* ホーム追加の案内 */
-  #a2hs { position: absolute; left: 16px; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom));
-    background: rgba(10,10,13,.95); border: 1px solid rgba(217,182,103,.6);
-    padding: 14px 16px; font-size: 12.5px; line-height: 1.7; display: none; }
-  #a2hs.on { display: block; }
-  #a2hs b { color: var(--gold); }
-  #a2hs .x { float: right; color: rgba(243,239,230,.5); cursor: pointer; }
+  #a2hs { position:absolute; left:16px; right:16px; bottom:calc(96px + env(safe-area-inset-bottom)); z-index:30;
+    background:rgba(10,10,14,.96); border:1px solid rgba(217,182,103,.6); padding:14px 16px; font-size:12px; line-height:1.7; display:none; box-shadow:0 4px 20px rgba(0,0,0,.6); }
+  #a2hs.on { display:block; }
+  #a2hs b { color:var(--gold); }
+  #a2hs .x { float:right; color:rgba(243,239,230,.5); cursor:pointer; }
 </style>
 </head>
 <body>
 <div id="stage">
+  <div id="season-bg"></div>
   <canvas id="scene"></canvas>
+  <div id="season-tint"></div>
+  <svg id="goldframe" preserveAspectRatio="none"></svg>
   <div id="ui">
-    <div id="brand"><div class="t">こよみ</div><div class="s">七十二候</div></div>
+    <div id="brand"><div class="t">こよみ</div><div class="s">七十二候 · KOYOMI</div></div>
     <div id="frame" class="fade"></div>
     <div id="title" class="fade"></div>
+    <div id="title-en" class="fade"></div>
     <div id="desc" class="v fade"></div>
-    <div id="hanko" class="v fade">歳時記行</div>
+    <div id="hanko" class="fade"></div>
     <div id="side" class="fade">
+      <div id="compass"></div>
       <div class="sekki v"></div>
       <div class="toki v"></div>
     </div>
     <div id="footer">
+      <div id="footrule"></div>
       <div id="btns">
-        <button class="btn" id="b-shiori">栞</button>
-        <button class="btn" id="b-today" style="visibility:hidden">今日へ戻る</button>
-        <button class="btn" id="b-sound">♪</button>
+        <button class="btn" id="b-shiori">栞 <span class="b-en">Notes</span></button>
+        <button class="btn" id="b-today" style="visibility:hidden">今日へ <span class="b-en">Today</span></button>
+        <button class="btn" id="b-sound">&#9834;</button>
       </div>
       <div id="track"><div id="fill"></div></div>
-      <div id="hint">左右に繰って季節を巡る ・ 触れると波紋</div>
+      <div id="hint">左右に繰って季節を巡る · Swipe · 触れて波紋 Tap to ripple</div>
     </div>
     <div id="a2hs">
-      <span class="x" id="a2hs-x">✕</span>
-      <b>ホーム画面に追加</b>すると、アプリのように全画面で使えます。<br>
-      下の <b>共有ボタン</b> → <b>「ホーム画面に追加」</b>。
+      <span class="x" id="a2hs-x">&#10005;</span>
+      <b>ホーム画面に追加</b>すると全画面で使えます。<br>
+      下の<b>共有ボタン</b>→<b>「ホーム画面に追加」</b>。
     </div>
   </div>
   <div id="shiori">
     <div id="sheet">
-      <h2 id="sh-head"></h2>
-      <div class="hr"></div>
+      <div id="sh-head"></div>
+      <div id="sh-rule"></div>
       <div id="cols"></div>
       <div class="note">※ 音はすべて本アプリ内で生成した創作の自然音です</div>
-      <div class="close">とじる（画面に触れる）</div>
+      <div class="close">とじる · Tap to close</div>
     </div>
   </div>
 </div>
-
 <div id="err" style="position:fixed;inset:0;background:#0a0a0d;color:#e88;font-size:13px;padding:40px 20px;z-index:9999;display:none;font-family:monospace;line-height:1.7;overflow:auto"></div>
 <script>
   window.__err = function(msg){ var e=document.getElementById('err'); e.style.display='block'; e.innerHTML += msg + '<br>'; };
   window.addEventListener('error', function(ev){ window.__err('\u26a0 ' + (ev.message||ev.type)); }, true);
 </script>
-<script src="koyomi-all.js" onerror="window.__err('\u2715 koyomi-all.js \u304c\u8aad\u3081\u307e\u305b\u3093')"></script>
+<script src="koyomi-all.js" onerror="window.__err('\u2715 koyomi-all.js が読めません')"></script>
 </body>
 </html>
