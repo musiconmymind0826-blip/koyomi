@@ -1,7 +1,7 @@
 // ============================================================
-// こよみ 七十二候 — 全ロジック1ファイル版
-// data + engine + particles + sound(synth) + app
-// 音はWeb Audioで合成。外部ファイル一切不要。
+// こよみ 七十二候 — 全ロジック1ファイル版（豪華装飾版）
+// data + i18n + engine + ornate + particles + sound(synth) + app
+// 音はWeb Audioで合成。装飾はSVG/Canvas。背景画像はimg/参照（無くても動作）。
 // ============================================================
 
 // ===================== data.js =====================
@@ -337,6 +337,174 @@ function rangeLabel(i) {
   return `${a.m}月${a.d}日 — ${end.getMonth() + 1}月${end.getDate()}日頃`;
 }
 
+// ===================== i18n.js =====================
+// ============================================================
+// i18n.js — 英訳辞書（すべての日本語に小さく英語を併記するため）
+// KO_EN[候名] = 候の英訳 / SEKKI_EN[節気名] = 節気英訳 / UI_EN[語] = UI英訳
+// ============================================================
+
+// 72候の英訳（意味を伝える簡潔な英語）
+const KO_EN = {
+  '東風解凍': 'East Wind Melts the Ice',
+  '黄鶯睍睆': 'Bush Warblers Start Singing',
+  '魚上氷': 'Fish Rise from the Ice',
+  '土脉潤起': 'Rain Moistens the Soil',
+  '霞始靆': 'Mist Starts to Linger',
+  '草木萌動': 'Grass and Trees Sprout',
+  '蟄虫啓戸': 'Hibernating Insects Awaken',
+  '桃始笑': 'Peach Blossoms Begin to Smile',
+  '菜虫化蝶': 'Caterpillars Become Butterflies',
+  '雀始巣': 'Sparrows Start to Nest',
+  '桜始開': 'Cherry Blossoms Begin to Bloom',
+  '雷乃発声': 'Distant Thunder Sounds',
+  '玄鳥至': 'Swallows Return',
+  '鴻雁北': 'Wild Geese Fly North',
+  '虹始見': 'First Rainbows Appear',
+  '葭始生': 'Reeds Begin to Sprout',
+  '霜止出苗': 'Frost Ends, Rice Seedlings Grow',
+  '牡丹華': 'Peonies Bloom',
+  '蛙始鳴': 'Frogs Start Singing',
+  '蚯蚓出': 'Earthworms Surface',
+  '竹笋生': 'Bamboo Shoots Sprout',
+  '蚕起食桑': 'Silkworms Feast on Mulberry',
+  '紅花栄': 'Safflowers Bloom in Abundance',
+  '麦秋至': 'Wheat Ripens and is Harvested',
+  '螳螂生': 'Praying Mantises Hatch',
+  '腐草為螢': 'Rotten Grass Becomes Fireflies',
+  '梅子黄': 'Plums Turn Yellow',
+  '乃東枯': 'Self-Heal Withers',
+  '菖蒲華': 'Irises Bloom',
+  '半夏生': 'Crow-Dipper Sprouts',
+  '温風至': 'Warm Winds Arrive',
+  '蓮始開': 'Lotus Flowers Open',
+  '鷹乃学習': 'Young Hawks Learn to Fly',
+  '桐始結花': 'Paulownia Trees Form Seeds',
+  '土潤溽暑': 'Damp Earth, Humid Heat',
+  '大雨時行': 'Great Rains Fall at Times',
+  '涼風至': 'Cool Winds Arrive',
+  '寒蝉鳴': 'Evening Cicadas Sing',
+  '蒙霧升降': 'Thick Fog Descends',
+  '綿柎開': 'Cotton Bolls Open',
+  '天地始粛': 'Heat Starts to Calm',
+  '禾乃登': 'Rice Ripens',
+  '草露白': 'Dew Glistens White on Grass',
+  '鶺鴒鳴': 'Wagtails Sing',
+  '玄鳥去': 'Swallows Depart',
+  '雷乃収声': 'Thunder Ceases',
+  '蟄虫坏戸': 'Insects Burrow Underground',
+  '水始涸': 'Rice Fields are Drained',
+  '鴻雁来': 'Wild Geese Return',
+  '菊花開': 'Chrysanthemums Bloom',
+  '蟋蟀在戸': 'Crickets Chirp by the Door',
+  '霜始降': 'First Frost Falls',
+  '霎時施': 'Light Rains Fall at Times',
+  '楓蔦黄': 'Maples and Ivy Turn Yellow',
+  '山茶始開': 'Sasanqua Camellias Bloom',
+  '地始凍': 'The Land Begins to Freeze',
+  '金盞香': 'Daffodils Bloom',
+  '虹蔵不見': 'Rainbows Hide from View',
+  '朔風払葉': 'North Wind Scatters Leaves',
+  '橘始黄': 'Tachibana Citrus Turn Yellow',
+  '閉塞成冬': 'Cold Sets In, Winter Begins',
+  '熊蟄穴': 'Bears Retreat to Hibernate',
+  '鱖魚群': 'Salmon Gather and Swim Upstream',
+  '乃東生': 'Self-Heal Sprouts',
+  '麋角解': 'Deer Shed Their Antlers',
+  '雪下出麦': 'Wheat Sprouts Under Snow',
+  '芹乃栄': 'Parsley Flourishes',
+  '水泉動': 'Springs Begin to Stir',
+  '雉始雊': 'Pheasants Start to Call',
+  '款冬華': 'Butterburs Bud',
+  '水沢腹堅': 'Streams Freeze Thick',
+  '鶏始乳': 'Hens Start Laying Eggs',
+};
+
+// 24節気の英訳
+const SEKKI_EN = {
+  '立春': 'Beginning of Spring', '雨水': 'Rain Water', '啓蟄': 'Awakening of Insects',
+  '春分': 'Spring Equinox', '清明': 'Pure Brightness', '穀雨': 'Grain Rain',
+  '立夏': 'Beginning of Summer', '小満': 'Grain Buds', '芒種': 'Grain in Ear',
+  '夏至': 'Summer Solstice', '小暑': 'Minor Heat', '大暑': 'Major Heat',
+  '立秋': 'Beginning of Autumn', '処暑': 'End of Heat', '白露': 'White Dew',
+  '秋分': 'Autumn Equinox', '寒露': 'Cold Dew', '霜降': 'Frost Descent',
+  '立冬': 'Beginning of Winter', '小雪': 'Minor Snow', '大雪': 'Major Snow',
+  '冬至': 'Winter Solstice', '小寒': 'Minor Cold', '大寒': 'Major Cold',
+};
+
+// 花の英訳
+const HANA_EN = {
+  '梅': 'Plum', '椿': 'Camellia', '福寿草': 'Pheasant\'s Eye', '猫柳': 'Pussy Willow',
+  '沈丁花': 'Daphne', '菜の花': 'Rapeseed Blossom', '木蓮': 'Magnolia', '桃': 'Peach',
+  '菫（すみれ）': 'Violet', '雪柳': 'Spirea', '桜': 'Cherry Blossom', '山吹': 'Kerria',
+  '蒲公英（たんぽぽ）': 'Dandelion', '山桜': 'Wild Cherry', '藤': 'Wisteria',
+  '躑躅（つつじ）': 'Azalea', '鈴蘭': 'Lily of the Valley', '牡丹': 'Peony',
+  '杜若（かきつばた）': 'Rabbit-ear Iris', '薔薇': 'Rose', '卯の花': 'Deutzia',
+  '芍薬': 'Chinese Peony', '紅花': 'Safflower', '麦の穂': 'Wheat Ear', '紫陽花': 'Hydrangea',
+  '梔子（くちなし）': 'Gardenia', '花菖蒲': 'Japanese Iris', '夏椿（沙羅）': 'Stewartia',
+  '菖蒲（あやめ）': 'Iris', '半夏（烏柄杓）': 'Crow-Dipper', '朝顔': 'Morning Glory',
+  '蓮': 'Lotus', '凌霄花（のうぜんかずら）': 'Trumpet Vine', '桐': 'Paulownia',
+  '百日紅（さるすべり）': 'Crape Myrtle', '向日葵': 'Sunflower', '撫子': 'Dianthus',
+  '木槿（むくげ）': 'Rose of Sharon', '芙蓉': 'Cotton Rose', '綿花': 'Cotton Flower',
+  '萩': 'Bush Clover', '稲穂': 'Rice Ear', '桔梗': 'Balloon Flower', '彼岸花': 'Red Spider Lily',
+  '葛の花': 'Kudzu Flower', '金木犀': 'Fragrant Olive', '竜胆（りんどう）': 'Gentian',
+  '秋桜（コスモス）': 'Cosmos', '藤袴': 'Boneset', '菊': 'Chrysanthemum',
+  '紫式部（実）': 'Beautyberry', '茶の花': 'Tea Flower', '石蕗（つわぶき）': 'Leopard Plant',
+  '紅葉': 'Maple Leaves', '山茶花': 'Sasanqua', '枇杷の花': 'Loquat Flower', '水仙': 'Daffodil',
+  '柊（ひいらぎ）': 'Holly Olive', '寒椿': 'Winter Camellia', '橘': 'Tachibana Citrus',
+  '南天（実）': 'Nandina Berry', '葉牡丹': 'Flowering Kale', '千両（実）': 'Coral Berry',
+  '柚子': 'Yuzu', '侘助（椿）': 'Wabisuke Camellia', '寒菊': 'Winter Chrysanthemum',
+  '芹': 'Japanese Parsley', '蝋梅（ろうばい）': 'Wintersweet', '寒牡丹': 'Winter Peony',
+  '蕗の薹': 'Butterbur Bud', '寒紅梅': 'Winter Red Plum', '節分草': 'Winter Aconite',
+};
+
+// 旬の味の英訳
+const SHUN_EN = {
+  'ふきのとう': 'Butterbur Sprout', '公魚（わかさぎ）': 'Pond Smelt', '蛤（はまぐり）': 'Clam',
+  '春菊': 'Crown Daisy', '鰆（さわら）': 'Spanish Mackerel', '蕗（ふき）': 'Butterbur',
+  '浅蜊（あさり）': 'Short-neck Clam', '鰊（にしん）': 'Herring', '新玉葱': 'Spring Onion',
+  '桜鯛': 'Cherry Sea Bream', '桜餅': 'Sakura Mochi', '飯蛸（いいだこ）': 'Baby Octopus',
+  '新若布（わかめ）': 'New Wakame', '筍（たけのこ）': 'Bamboo Shoot', '桜海老': 'Sakura Shrimp',
+  '蕨（わらび）': 'Bracken', '鯵（あじ）': 'Horse Mackerel', '新茶': 'New Green Tea',
+  '初鰹': 'First Bonito', '蚕豆（そらまめ）': 'Fava Bean', '鱚（きす）': 'Whiting',
+  '苺': 'Strawberry', '新生姜': 'New Ginger', '枇杷（びわ）': 'Loquat', '鮎（あゆ）': 'Sweetfish',
+  '梅の実': 'Green Plum', '杏（あんず）': 'Apricot', '茗荷（みょうが）': 'Myoga Ginger',
+  '鰯（いわし）': 'Sardine', '蛸（たこ）': 'Octopus', '鰻（うなぎ）': 'Eel',
+  '素麺（そうめん）': 'Somen Noodles', '鱧（はも）': 'Pike Conger', '西瓜（すいか）': 'Watermelon',
+  '茄子': 'Eggplant', '鮑（あわび）': 'Abalone', '桃': 'Peach', '葡萄': 'Grape',
+  '無花果（いちじく）': 'Fig', '梨': 'Pear', '秋茄子': 'Autumn Eggplant', '新米': 'New Rice',
+  '秋刀魚（さんま）': 'Pacific Saury', '里芋': 'Taro', '栗': 'Chestnut', '銀杏（ぎんなん）': 'Ginkgo Nut',
+  '松茸': 'Matsutake Mushroom', '柿': 'Persimmon', '鯖（さば）': 'Mackerel', '林檎': 'Apple',
+  '太刀魚': 'Beltfish', '新蕎麦': 'New Buckwheat', '蓮根': 'Lotus Root', '牡蠣（かき）': 'Oyster',
+  '蜜柑': 'Mandarin Orange', '大根': 'Daikon Radish', '葱（ねぎ）': 'Green Onion',
+  '帆立': 'Scallop', '白菜': 'Napa Cabbage', '河豚（ふぐ）': 'Pufferfish', '鰤（ぶり）': 'Yellowtail',
+  '蕪（かぶ）': 'Turnip', '鱈（たら）': 'Cod', '南瓜（かぼちゃ）': 'Pumpkin', '金目鯛': 'Golden Eye Snapper',
+  '黒豆': 'Black Soybean', '七草粥': 'Seven Herb Porridge', '小松菜': 'Komatsuna Greens',
+  '鮟鱇（あんこう）': 'Monkfish', '金柑': 'Kumquat', '寒蜆（しじみ）': 'Winter Clam', '福豆': 'Lucky Beans',
+};
+
+// UI文言の英訳
+const UI_EN = {
+  'こよみ': 'KOYOMI', '七十二候': 'The 72 Micro-Seasons',
+  '今日の候': "Today's Season", '今日': 'Today', '今日へ戻る': 'Back to Today',
+  '栞': 'Notes', '候の花': 'Flower', '旬の味': 'Seasonal Taste', '節気のこと': 'About the Term',
+  'いまの音': 'Sound', 'はじめる': 'Begin', '消音中': 'Muted',
+  '川のせせらぎ': 'Babbling Stream', '雨の音': 'Rain', '夕立と遠雷': 'Evening Shower & Thunder',
+  'そよ風': 'Gentle Breeze', '木枯らし': 'Winter Wind', '雪のしじま': 'Silence of Snow',
+  '小鳥のさえずり': 'Birdsong', '蛙の合唱': 'Chorus of Frogs', '蝉しぐれ': 'Cicada Shower',
+  'ひぐらし': 'Evening Cicada', '虫の音': 'Insect Songs', '風鈴': 'Wind Chime',
+  '春': 'Spring', '夏': 'Summer', '秋': 'Autumn', '冬': 'Winter',
+  '暁': 'Dawn', '朝': 'Morning', '昼': 'Day', '夕': 'Evening', '宵': 'Dusk', '夜半': 'Midnight',
+  '新月': 'New Moon', '三日月': 'Crescent Moon', '上弦の月': 'First Quarter', '十三夜': 'Waxing Gibbous',
+  '満月': 'Full Moon', '十六夜': 'Waning Gibbous', '下弦の月': 'Last Quarter', '有明の月': 'Waning Crescent',
+  '刻': '', 'の刻': '',
+};
+
+function enKo(k) { return KO_EN[k] || ''; }
+function enSekki(n) { return SEKKI_EN[n] || ''; }
+function enHana(h) { return HANA_EN[h] || ''; }
+function enShun(s) { return SHUN_EN[s] || ''; }
+function enUI(t) { return UI_EN[t] || ''; }
+
 // ===================== engine.js =====================
 // ============================================================
 // engine.js — シード乱数・色・月齢・刻・日替わり構図
@@ -555,6 +723,117 @@ function drawScene(ctx, spec) {
 
   // 刻の色調
   ctx.fillStyle = spec.tod.tint; ctx.fillRect(0, 0, W, H);
+}
+
+// ===================== ornate.js =====================
+// ============================================================
+// ornate.js — 豪華装飾レイヤー
+// 金箔の質感・装飾枠・二十四節気の羅針盤・四隅飾り・金の罫線装飾
+// すべてSVG/Canvasで描画（画像不要・壊れない）
+// ============================================================
+
+// 二十四節気（羅針盤用・配置順）
+const COMPASS_SEKKI = ['立春','雨水','啓蟄','春分','清明','穀雨','立夏','小満','芒種','夏至','小暑','大暑','立秋','処暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒'];
+
+// ---- 金箔のきらめきテクスチャ（Canvas・全面に薄く重ねる）----
+function drawGoldLeaf(ctx, W, H, seed, t) {
+  const R = mulberry32(seed >>> 0);
+  ctx.save();
+  // 金箔の割れ目状の薄い斑
+  for (let i = 0; i < 60; i++) {
+    const x = R() * W, y = R() * H * 0.85;
+    const s = (1 + R() * 4);
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.0006 + i * 1.7);
+    ctx.globalAlpha = (0.015 + R() * 0.04) * tw;
+    ctx.fillStyle = R() < 0.5 ? '#e3c878' : '#bfa24a';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let k = 0; k < 5; k++) ctx.lineTo(x + (R() - 0.5) * s * 10, y + (R() - 0.5) * s * 10);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---- 四隅の装飾飾り（SVG文字列を返す）----
+function cornerOrnamentSVG() {
+  const c = (rot, x, y) => `<g transform="translate(${x},${y}) rotate(${rot})" opacity="0.85">
+    <path d="M0,0 L34,0 M0,0 L0,34" stroke="#d9b667" stroke-width="1.2" fill="none"/>
+    <path d="M6,6 Q20,6 20,20" stroke="#bfa24a" stroke-width="0.8" fill="none"/>
+    <circle cx="0" cy="0" r="2.4" fill="#e8cd85"/>
+    <path d="M10,2 L14,2 M2,10 L2,14" stroke="#d9b667" stroke-width="0.7"/>
+  </g>`;
+  return c;
+}
+
+// ---- 二十四節気の羅針盤（現在の節気を指し示す）----
+// SVG文字列を生成。sekkiIndex=0-23 で針が回る
+function compassSVG(sekkiIndex, size) {
+  const cx = size / 2, cy = size / 2;
+  const rOuter = size * 0.46, rInner = size * 0.33, rText = size * 0.40;
+  let ticks = '', labels = '';
+  for (let i = 0; i < 24; i++) {
+    const ang = (i / 24) * Math.PI * 2 - Math.PI / 2;
+    const x1 = cx + Math.cos(ang) * rOuter, y1 = cy + Math.sin(ang) * rOuter;
+    const x2 = cx + Math.cos(ang) * rInner, y2 = cy + Math.sin(ang) * rInner;
+    const major = i % 6 === 0;
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${major ? '#e8cd85' : 'rgba(217,182,103,0.45)'}" stroke-width="${major ? 1.3 : 0.6}"/>`;
+    const tx = cx + Math.cos(ang) * rText, ty = cy + Math.sin(ang) * rText;
+    const active = i === sekkiIndex;
+    labels += `<text x="${tx.toFixed(1)}" y="${(ty + 3).toFixed(1)}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="${active ? 11 : 8}" fill="${active ? '#fff' : 'rgba(217,182,103,0.7)'}" font-weight="${active ? '600' : '400'}">${COMPASS_SEKKI[i][0]}</text>`;
+  }
+  // 針
+  const needleAng = (sekkiIndex / 24) * Math.PI * 2 - Math.PI / 2;
+  const nx = cx + Math.cos(needleAng) * rInner * 0.92;
+  const ny = cy + Math.sin(needleAng) * rInner * 0.92;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+    <circle cx="${cx}" cy="${cy}" r="${rOuter + 4}" fill="none" stroke="rgba(217,182,103,0.3)" stroke-width="0.8"/>
+    <circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="rgba(8,8,12,0.55)" stroke="#bfa24a" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="rgba(217,182,103,0.4)" stroke-width="0.7"/>
+    ${ticks}${labels}
+    <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#e8cd85" stroke-width="1.6"/>
+    <circle cx="${cx}" cy="${cy}" r="3.2" fill="#e8cd85"/>
+    <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="2.2" fill="#fff"/>
+  </svg>`;
+}
+
+// ---- 装飾的な金の罫線（縦・横）----
+function goldRuleH(width) {
+  return `<svg viewBox="0 0 ${width} 8" width="${width}" height="8" preserveAspectRatio="none" style="display:block">
+    <line x1="0" y1="4" x2="${width}" y2="4" stroke="url(#grg)" stroke-width="1"/>
+    <defs><linearGradient id="grg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9b667" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#e8cd85" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#d9b667" stop-opacity="0"/>
+    </linearGradient></defs>
+    <circle cx="${width / 2}" cy="4" r="2" fill="#e8cd85"/>
+    <path d="M${width / 2 - 14},4 L${width / 2 - 4},4 M${width / 2 + 4},4 L${width / 2 + 14},4" stroke="#e8cd85" stroke-width="0.6"/>
+  </svg>`;
+}
+
+// ---- 落款（朱印・SVG）----
+function hankoSVG(chars, size) {
+  const cs = chars.split('');
+  const cell = size / 2;
+  let txt = '';
+  const pos = [[0.5, 0.27], [0.5, 0.73]];
+  // 2文字縦／4文字なら2x2
+  if (cs.length === 4) {
+    const p = [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]];
+    // 右上→右下→左上→左下（印章の読み順）
+    const order = [1, 3, 0, 2];
+    order.forEach((oi, k) => {
+      txt += `<text x="${p[oi][0] * size}" y="${p[oi][1] * size + size * 0.07}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="${size * 0.28}" fill="#f6e9da" font-weight="600">${cs[k]}</text>`;
+    });
+  } else {
+    cs.forEach((c, k) => {
+      txt += `<text x="${size / 2}" y="${(0.34 + k * 0.38) * size}" text-anchor="middle" font-family="'Hiragino Mincho ProN',serif" font-size="${size * 0.3}" fill="#f6e9da" font-weight="600">${c}</text>`;
+    });
+  }
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="transform:rotate(-2deg)">
+    <rect x="1" y="1" width="${size - 2}" height="${size - 2}" rx="3" fill="#a8281e" stroke="#7a1c14" stroke-width="1"/>
+    <rect x="3.5" y="3.5" width="${size - 7}" height="${size - 7}" rx="2" fill="none" stroke="rgba(246,233,218,0.5)" stroke-width="0.6"/>
+    ${txt}
+  </svg>`;
 }
 
 // ===================== particles.js =====================
@@ -848,11 +1127,13 @@ const soundManager = new SoundManager();
     canvas.width = W * DPR; canvas.height = H * DPR;
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    frameDrawn = false;
     buildCurrent();
   }
 
   // 現在候のシーン・粒子
   let spec = null, particles = null, goldSys = null;
+  let frameDrawn = false;
   let gust = 0, gustPhase = 0, nextGust = 6000, gustT = 0;
   let ripples = [];
 
@@ -887,6 +1168,7 @@ const soundManager = new SoundManager();
     ctx.translate((kb - 0.5) * 12, (0.5 - kb) * 8);
 
     if (spec) drawScene(ctx, spec);
+    drawGoldLeaf(ctx, W, H, (current * 7919 + 13) >>> 0, t);
     if (particles) particles.step(ctx, dt, t);
 
     // 風で金がきらめく
@@ -917,33 +1199,76 @@ const soundManager = new SoundManager();
   const $ = (id) => document.getElementById(id);
   function renderUI() {
     const ko = KO[current], sekki = SEKKI[ko.s];
-    // 枠ラベル
+    setSeasonBg(ko.s);
+    drawGoldFrame();
+    // 枠ラベル（英訳つき）
     const fc = '七十二候'.split('').map((c) => `<span class="fc">${c}</span>`).join('');
     const num = ('第' + kanjiNum(current + 1) + '候').split('').map((c) => `<span class="fc">${c}</span>`).join('');
     $('frame').innerHTML = fc + '<div class="div"></div>' + num +
-      (current === todayIndex ? '<div id="today-mark">今日</div>' : '');
+      '<div class="fc-en">No.' + (current + 1) + '<br>of 72</div>' +
+      (current === todayIndex ? '<div id="today-mark">今日<br><span class="tm-en">TODAY</span></div>' : '');
     // 題字
-    const ts = ko.k.length <= 3 ? 68 : 56;
+    const ts = ko.k.length <= 3 ? 62 : 50;
     const kanji = ko.k.split('').map((c) => `<div>${c}</div>`).join('');
     const ruby = ko.y.split('').map((c) => `<span>${c}</span>`).join('');
     $('title').style.setProperty('--ts', ts + 'px');
     $('title').innerHTML = `<div class="kanji">${kanji}</div><div class="ruby">${ruby}</div>`;
-    // 解説・脇
+    $('title-en').textContent = enKo(ko.k);
+    // 解説
     $('desc').textContent = ko.t;
-    $('side').querySelector('.sekki').textContent = `${sekki.n}　${rangeLabel(current)}`;
-    $('side').querySelector('.toki').textContent = `${spec.tod.n}の刻　${moonName(moonPhase(baseDateFor(current)))}`;
-    // フッター
+    // 落款（SVG）
+    $('hanko').innerHTML = hankoSVG('歳時記行', 34);
+    // 羅針盤（現在の節気を指す）
+    $('compass').innerHTML = compassSVG(ko.s, 94);
+    // 脇情報
+    $('side').querySelector('.sekki').innerHTML =
+      `${sekki.n}　${rangeLabel(current)}<br><span class="s-en">${enSekki(sekki.n)}</span>`;
+    const tokiJa = `${spec.tod.n}の刻　${moonName(moonPhase(baseDateFor(current)))}`;
+    const tokiEn = `${enUI(spec.tod.n)} · ${enUI(moonName(moonPhase(baseDateFor(current))))}`;
+    $('side').querySelector('.toki').innerHTML = `${tokiJa}<br><span class="s-en">${tokiEn}</span>`;
+    // フッター装飾罫
+    $('footrule').innerHTML = goldRuleH(window.innerWidth - 36);
     $('fill').style.width = ((current + 1) / KO.length * 100) + '%';
     $('b-today').style.visibility = current === todayIndex ? 'hidden' : 'visible';
-    $('b-sound').textContent = muted ? '♪ 消音中' : '♪ ' + (SOUND_NAMES[ko.snd] || '');
+    const sndJa = muted ? '消音中' : (SOUND_NAMES[ko.snd] || '');
+    const sndEn = muted ? 'Muted' : enUI(SOUND_NAMES[ko.snd] || '');
+    $('b-sound').innerHTML = '♪ ' + sndJa + ' <span class="b-en">' + sndEn + '</span>';
     $('b-sound').classList.toggle('off', muted);
     // 入場フェード
-    ['frame', 'title', 'desc', 'hanko', 'side'].forEach((id, i) => {
-      const el = $(id); el.classList.remove('in');
-      setTimeout(() => el.classList.add('in'), 60 + i * 110);
+    ['frame', 'title', 'title-en', 'desc', 'hanko', 'side'].forEach((id, i) => {
+      const el = $(id); if (!el) return; el.classList.remove('in');
+      setTimeout(() => el.classList.add('in'), 60 + i * 100);
     });
-    // 音
     soundManager.play(ko.snd);
+  }
+
+  // 金箔の額縁（画面全体を囲む二重罫＋四隅飾り）
+  function drawGoldFrame() {
+    if (frameDrawn) return; frameDrawn = true;
+    const W = window.innerWidth, H = window.innerHeight;
+    const svg = document.getElementById('goldframe');
+    if (!svg) return;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const m = 8, m2 = 13;
+    const corner = cornerOrnamentSVG();
+    svg.innerHTML = `
+      <rect x="${m}" y="${m}" width="${W - m * 2}" height="${H - m * 2}" fill="none" stroke="rgba(217,182,103,0.55)" stroke-width="1"/>
+      <rect x="${m2}" y="${m2}" width="${W - m2 * 2}" height="${H - m2 * 2}" fill="none" stroke="rgba(217,182,103,0.22)" stroke-width="0.5"/>
+      ${corner(0, m, m)}
+      ${corner(90, W - m, m)}
+      ${corner(270, m, H - m)}
+      ${corner(180, W - m, H - m)}
+    `;
+  }
+
+  // 節気index(0-23)から季節背景を割り当て
+  let curSeason = null;
+  function setSeasonBg(sekkiIndex) {
+    const season = sekkiIndex < 6 ? 'spring' : sekkiIndex < 12 ? 'summer' : sekkiIndex < 18 ? 'autumn' : 'winter';
+    if (season === curSeason) return;
+    curSeason = season;
+    const bg = document.getElementById('season-bg');
+    if (bg) bg.style.backgroundImage = `url('img/bg_${season}.jpg')`;
   }
 
   // ページ送り
@@ -1000,13 +1325,17 @@ const soundManager = new SoundManager();
   // 栞
   function openShiori() {
     const ko = KO[current], sekki = SEKKI[ko.s];
-    $('sh-head').textContent = '栞　—　' + ko.k;
-    const col = (title, body) =>
-      `<div class="col"><div class="ct v">${title}</div><div class="cr"></div><div class="cb v">${body}</div></div>`;
+    $('sh-head').innerHTML = '栞　—　' + ko.k + '<br><span class="sh-en">' + enKo(ko.k) + '</span>';
+    $('sh-rule').innerHTML = goldRuleH(230);
+    const col = (title, titleEn, body, bodyEn) =>
+      `<div class="col"><div class="ct v">${title}</div><div class="cr"></div>` +
+      `<div class="cb v">${body}</div>` +
+      (bodyEn ? `<div class="cb-en">${bodyEn}</div>` : '') + `</div>`;
     $('cols').innerHTML =
-      col('候の花', ko.hana) + col('旬の味', ko.shun) +
-      col('節気のこと', `${sekki.n}（${sekki.y}）。${sekki.t}`) +
-      col('いまの音', SOUND_NAMES[ko.snd] || '');
+      col('候の花', 'Flower', ko.hana, enHana(ko.hana)) +
+      col('旬の味', 'Taste', ko.shun, enShun(ko.shun)) +
+      col('節気のこと', 'Term', `${sekki.n}（${sekki.y}）。${sekki.t}`, enSekki(sekki.n)) +
+      col('いまの音', 'Sound', SOUND_NAMES[ko.snd] || '', enUI(SOUND_NAMES[ko.snd] || ''));
     $('shiori').classList.add('on');
   }
   $('shiori').addEventListener('click', () => $('shiori').classList.remove('on'));
@@ -1028,11 +1357,149 @@ const soundManager = new SoundManager();
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(loop);
-  maybeShowA2HS();
 
   // 最初のタップ/クリックで音を解錠
   const unlockOnce = () => { soundManager.unlock(); window.removeEventListener('pointerdown', unlockOnce); };
   window.addEventListener('pointerdown', unlockOnce);
+
+  // ===== オープニング画面（添付ビジュアル背景・英訳併記）=====
+  showOpening();
+  function showOpening() {
+    const ko = KO[todayIndex];
+    const ov = document.createElement('div');
+    ov.id = 'opening';
+    ov.innerHTML = `
+      <div id="op-bg"></div>
+      <div id="op-veil"></div>
+      <div id="op-inner">
+        <div class="op-line op-l1"></div>
+        <div class="op-title">こよみ</div>
+        <div class="op-title-en">KOYOMI</div>
+        <div class="op-sub">七十二候</div>
+        <div class="op-sub-en">The Seventy-Two Micro-Seasons of Japan</div>
+        <div class="op-line op-l2"></div>
+
+        <div class="op-today">
+          <div class="op-today-label">今日の候 <span>Today's Season</span></div>
+          <div class="op-today-ko">${ko.k}</div>
+          <div class="op-today-yomi">${ko.y}</div>
+          <div class="op-today-en">${enKo(ko.k)}</div>
+        </div>
+
+        <div class="op-compass">${compassSVG(ko.s, 120)}</div>
+        <div class="op-compass-label">二十四節気 · The 24 Solar Terms</div>
+
+        <div class="op-guide">
+          <div class="op-guide-row"><span class="op-ic">⟷</span><span class="op-gj">左右に繰って季節を巡る</span><span class="op-ge">Swipe to journey through the seasons</span></div>
+          <div class="op-guide-row"><span class="op-ic">◦</span><span class="op-gj">触れると金の波紋がひろがる</span><span class="op-ge">Touch to ripple gold across the screen</span></div>
+          <div class="op-guide-row"><span class="op-ic">♪</span><span class="op-gj">季節の音がそっと流れる</span><span class="op-ge">Gentle sounds of each season</span></div>
+          <div class="op-guide-row"><span class="op-ic">栞</span><span class="op-gj">花・旬の味・節気を知る</span><span class="op-ge">Discover flowers, flavors & terms</span></div>
+        </div>
+
+        <button id="op-start">はじめる<span>BEGIN</span></button>
+        <div class="op-hint">画面に触れて、暦をひらく　·　Tap to open</div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    injectOpeningCSS();
+    requestAnimationFrame(() => ov.classList.add('op-in'));
+
+    function closeOpening() {
+      soundManager.unlock();
+      ov.classList.add('op-out');
+      if (navigator.vibrate) navigator.vibrate(12);
+      setTimeout(() => { ov.remove(); maybeShowA2HS(); }, 1000);
+    }
+    document.getElementById('op-start').addEventListener('click', (e) => { e.stopPropagation(); closeOpening(); });
+    ov.addEventListener('click', closeOpening);
+  }
+
+  function injectOpeningCSS() {
+    if (document.getElementById('op-css')) return;
+    const s = document.createElement('style');
+    s.id = 'op-css';
+    s.textContent = `
+      #opening { position: fixed; inset: 0; z-index: 5000; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 1; transition: opacity 1s ease; background: #08080a; }
+      #opening.op-out { opacity: 0; }
+      #op-bg { position: absolute; inset: 0; background-image: url('img/opening.jpg');
+        background-size: cover; background-position: center;
+        transform: scale(1.08); transition: transform 8s ease-out;
+        animation: opKen 24s ease-in-out infinite alternate; }
+      #opening.op-in #op-bg { transform: scale(1.0); }
+      @keyframes opKen { 0% { background-position: 50% 30%; } 100% { background-position: 50% 70%; } }
+      #op-veil { position: absolute; inset: 0;
+        background: radial-gradient(ellipse at center, rgba(8,8,10,.35) 0%, rgba(8,8,10,.72) 70%, rgba(8,8,10,.92) 100%); }
+      #op-inner { position: relative; text-align: center; padding: 28px 24px;
+        max-width: 460px; font-family: inherit; }
+
+      .op-line { height: 1px; margin: 0 auto;
+        background: linear-gradient(90deg, transparent, rgba(217,182,103,.9), transparent);
+        width: 0; transition: width 1.3s ease; }
+      #opening.op-in .op-l1 { width: 66%; transition-delay: .3s; }
+      #opening.op-in .op-l2 { width: 50%; transition-delay: 2.2s; }
+
+      .op-title { font-size: 56px; letter-spacing: 16px; color: #f0d98a; font-weight: 600;
+        margin-top: 22px; text-shadow: 0 2px 30px rgba(0,0,0,.9), 0 0 14px rgba(217,182,103,.3);
+        opacity: 0; transform: translateY(18px); filter: blur(8px);
+        transition: opacity 1.4s ease, transform 1.4s ease, filter 1.4s ease; }
+      #opening.op-in .op-title { opacity: 1; transform: none; filter: blur(0); transition-delay: .5s; }
+      .op-title-en { font-size: 10px; letter-spacing: 9px; color: rgba(240,217,138,.8);
+        margin-top: 8px; opacity: 0; transition: opacity 1.2s ease; }
+      #opening.op-in .op-title-en { opacity: 1; transition-delay: 1.1s; }
+      .op-sub { font-size: 19px; letter-spacing: 13px; color: #e8cd85; margin-top: 16px;
+        text-shadow: 0 2px 16px rgba(0,0,0,.8);
+        opacity: 0; transform: translateY(12px); transition: opacity 1.2s ease, transform 1.2s ease; }
+      #opening.op-in .op-sub { opacity: 1; transform: none; transition-delay: 1.4s; }
+      .op-sub-en { font-size: 9.5px; letter-spacing: 3px; color: rgba(243,239,230,.6);
+        margin-top: 8px; opacity: 0; transition: opacity 1.1s ease; }
+      #opening.op-in .op-sub-en { opacity: 1; transition-delay: 1.8s; }
+
+      .op-today { margin-top: 30px; opacity: 0; transform: translateY(14px);
+        transition: opacity 1.2s ease, transform 1.2s ease; }
+      #opening.op-in .op-today { opacity: 1; transform: none; transition-delay: 2.5s; }
+      .op-today-label { font-size: 10px; letter-spacing: 4px; color: rgba(217,182,103,.8); }
+      .op-today-label span { display: block; font-size: 8px; letter-spacing: 2px; color: rgba(243,239,230,.5); margin-top: 3px; }
+      .op-today-ko { font-size: 30px; letter-spacing: 6px; color: #fff; margin-top: 12px;
+        text-shadow: 0 2px 20px rgba(0,0,0,.9); }
+      .op-today-yomi { font-size: 12px; letter-spacing: 2px; color: rgba(243,239,230,.75); margin-top: 8px; }
+      .op-today-en { font-size: 10px; letter-spacing: 1.5px; color: rgba(240,217,138,.75); margin-top: 6px; font-style: italic; }
+
+      .op-compass { width: 120px; height: 120px; margin: 22px auto 0;
+        opacity: 0; transform: scale(0.85) rotate(-12deg);
+        transition: opacity 1.4s ease, transform 1.4s ease;
+        filter: drop-shadow(0 0 14px rgba(217,182,103,.25)); }
+      #opening.op-in .op-compass { opacity: 1; transform: none; transition-delay: 2.8s; }
+      .op-compass-label { font-size: 8.5px; letter-spacing: 3px; color: rgba(217,182,103,.7);
+        margin-top: 8px; opacity: 0; transition: opacity 1s ease; }
+      #opening.op-in .op-compass-label { opacity: 1; transition-delay: 3.2s; }
+
+      .op-guide { margin-top: 32px; text-align: left; display: inline-block;
+        opacity: 0; transform: translateY(14px); transition: opacity 1.2s ease, transform 1.2s ease; }
+      #opening.op-in .op-guide { opacity: 1; transform: none; transition-delay: 3.6s; }
+      .op-guide-row { display: flex; align-items: center; gap: 11px; line-height: 1.5; margin: 7px 0; }
+      .op-ic { display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border: 1px solid rgba(217,182,103,.65); color: #d9b667;
+        font-size: 11px; flex-shrink: 0; }
+      .op-gj { font-size: 12.5px; color: rgba(243,239,230,.9); letter-spacing: .5px; }
+      .op-ge { font-size: 9px; color: rgba(243,239,230,.5); letter-spacing: .3px; margin-left: 4px; }
+
+      #op-start { margin-top: 34px; font-family: inherit; cursor: pointer;
+        background: rgba(8,8,10,.4); border: 1px solid rgba(217,182,103,.9); color: #e8cd85;
+        font-size: 15px; letter-spacing: 8px; padding: 12px 40px;
+        opacity: 0; transform: translateY(12px);
+        transition: opacity 1.1s ease, transform 1.1s ease, background .3s; }
+      #op-start span { display: block; font-size: 8px; letter-spacing: 4px; color: rgba(240,217,138,.7); margin-top: 4px; }
+      #opening.op-in #op-start { opacity: 1; transform: none; transition-delay: 4.2s; }
+      #op-start:active { background: rgba(217,182,103,.2); }
+      .op-hint { margin-top: 16px; font-size: 9.5px; letter-spacing: 2px; color: rgba(243,239,230,.5);
+        opacity: 0; transition: opacity 1s ease; }
+      #opening.op-in .op-hint { opacity: 1; transition-delay: 4.7s; animation: opPulse 2.6s ease-in-out 5.2s infinite; }
+      @keyframes opPulse { 0%,100% { opacity: .5 } 50% { opacity: .85 } }
+    `;
+    document.head.appendChild(s);
+  }
 
   // Service Worker（オフライン動作）
   if ('serviceWorker' in navigator) {
