@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0a0a0d">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="こよみ">
@@ -96,6 +98,51 @@
   #a2hs.on { display:block; }
   #a2hs b { color:var(--gold); }
   #a2hs .x { float:right; color:rgba(243,239,230,.5); cursor:pointer; }
+  /* 上部ツールバー */
+  #toolbar { position:absolute; top:max(20px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:25; display:flex; gap:8px; }
+  .tbtn { border:1px solid rgba(217,182,103,.7); background:rgba(8,8,12,.55); color:var(--gold);
+    font-size:11px; letter-spacing:1px; padding:5px 12px; font-family:inherit; cursor:pointer; }
+  .tbtn:active { background:rgba(217,182,103,.18); }
+
+  /* 季節の和歌（栞内）*/
+  #sh-waka { margin-top:18px; padding-top:14px; border-top:0.5px solid rgba(217,182,103,.25); }
+  .wk-poem { font-size:14px; line-height:1.9; color:#f0d98a; letter-spacing:1px; }
+  .wk-author { font-size:10px; color:rgba(217,182,103,.75); margin-top:8px; }
+  .wk-im { font-size:11px; color:rgba(243,239,230,.7); margin-top:10px; line-height:1.5; }
+  .wk-en { font-size:9.5px; color:rgba(240,217,138,.6); margin-top:6px; font-style:italic; line-height:1.4; }
+
+  /* カレンダー（72候一覧）*/
+  #calendar { position:absolute; inset:0; background:rgba(5,5,8,.82); z-index:110; display:none;
+    align-items:center; justify-content:center; padding:16px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  #calendar.on { display:flex; }
+  #cal-sheet { position:relative; border:1px solid rgba(217,182,103,.7); background:rgba(10,10,14,.97);
+    padding:20px 14px 14px; width:100%; max-width:420px; max-height:88vh; overflow-y:auto;
+    box-shadow:0 8px 40px rgba(0,0,0,.7); }
+  #cal-head { text-align:center; font-size:15px; color:var(--gold2); letter-spacing:3px; margin-bottom:6px; }
+  #cal-head span { display:block; font-size:9px; letter-spacing:1px; color:rgba(243,239,230,.5); margin-top:3px; font-style:italic; }
+  #cal-favbar { text-align:center; font-size:9px; color:rgba(217,182,103,.7); margin-bottom:12px; min-height:12px; }
+  #cal-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .cal-cell { position:relative; border:1px solid rgba(217,182,103,.3); background:rgba(8,8,12,.5);
+    color:var(--paper); font-family:inherit; cursor:pointer; padding:8px 4px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .cal-cell:active { background:rgba(217,182,103,.15); }
+  .cal-cell.cal-today { border-color:var(--shu); box-shadow:0 0 8px rgba(168,40,30,.4); }
+  .cal-cell.cal-fav { border-color:rgba(217,182,103,.7); }
+  .cal-no { font-size:8px; color:rgba(217,182,103,.7); }
+  .cal-k { font-size:13px; color:#f0d98a; letter-spacing:1px; }
+  .cal-en { font-size:7px; color:rgba(243,239,230,.55); line-height:1.2; font-style:italic; }
+  .cal-star { position:absolute; top:3px; right:4px; font-size:9px; color:var(--gold2); }
+  #cal-close { text-align:center; font-size:10px; color:rgba(243,239,230,.6); margin-top:14px; letter-spacing:2px; }
+
+  /* お気に入りボタンの点灯 */
+  #b-fav.on { color:var(--gold2); border-color:rgba(217,182,103,1); box-shadow:inset 0 0 8px rgba(217,182,103,.2); }
+  #b-share.busy { opacity:.5; }
+
+  /* 英語UI（lang-en時、日本語UIラベルを小さく）*/
+  body.lang-en #brand .t::after { content:' / Koyomi'; font-size:10px; color:rgba(217,182,103,.7); }
+  #privacy-link { display:block; text-align:center; margin-top:14px; font-size:9.5px;
+    letter-spacing:1px; color:rgba(217,182,103,.65); text-decoration:none; }
+  #privacy-link:active { color:var(--gold2); }
 </style>
 </head>
 <body>
@@ -106,6 +153,11 @@
   <svg id="goldframe" preserveAspectRatio="none"></svg>
   <div id="ui">
     <div id="brand"><div class="t">こよみ</div><div class="s">七十二候 · KOYOMI</div></div>
+    <div id="toolbar">
+      <button class="tbtn" id="b-lang">EN</button>
+      <button class="tbtn" id="b-cal">暦</button>
+      <button class="tbtn" id="b-today" style="display:none">今日</button>
+    </div>
     <div id="frame" class="fade"></div>
     <div id="title" class="fade"></div>
     <div id="title-en" class="fade"></div>
@@ -120,7 +172,8 @@
       <div id="footrule"></div>
       <div id="btns">
         <button class="btn" id="b-shiori">栞 <span class="b-en">Notes</span></button>
-        <button class="btn" id="b-today" style="visibility:hidden">今日へ <span class="b-en">Today</span></button>
+        <button class="btn" id="b-fav">☆ <span class="b-en">栞</span></button>
+        <button class="btn" id="b-share">⤴ <span class="b-en">共有</span></button>
         <button class="btn" id="b-sound">&#9834;</button>
       </div>
       <div id="track"><div id="fill"></div></div>
@@ -137,8 +190,18 @@
       <div id="sh-head"></div>
       <div id="sh-rule"></div>
       <div id="cols"></div>
+      <div id="sh-waka"></div>
       <div class="note">※ 音はすべて本アプリ内で生成した創作の自然音です</div>
       <div class="close">とじる · Tap to close</div>
+      <a id="privacy-link" href="./privacy.html">プライバシー・権利表示 · Privacy & Attributions</a>
+    </div>
+  </div>
+  <div id="calendar">
+    <div id="cal-sheet">
+      <div id="cal-head">七十二候　一覧<span>The 72 Micro-Seasons</span></div>
+      <div id="cal-favbar"></div>
+      <div id="cal-grid"></div>
+      <div id="cal-close">とじる · Close</div>
     </div>
   </div>
 </div>
