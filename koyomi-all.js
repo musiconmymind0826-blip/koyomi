@@ -1,10 +1,6 @@
-// ============================================================
-// こよみ 七十二候 — 全ロジック1ファイル版（リリース対応・権利/セキュリティ整備版）
-// data + i18n + engine + ornate + waka + particles + sound + share + app
-// 外部API・外部通信なし／全素材オリジナルまたはパブリックドメイン
-// ============================================================
+// こよみ 七十二候 — UI/UX洗練版
 
-// ===================== data.js =====================
+// ===== data.js =====
 // ============================================================
 // 七十二候 — 全データ内蔵（バックエンド不要）
 // k: 候名 / y: 読み / m,d: 開始日(概算・年により±1日) / s: 節気index
@@ -337,7 +333,7 @@ function rangeLabel(i) {
   return `${a.m}月${a.d}日 — ${end.getMonth() + 1}月${end.getDate()}日頃`;
 }
 
-// ===================== i18n.js =====================
+// ===== i18n.js =====
 // ============================================================
 // i18n.js — 英訳辞書（すべての日本語に小さく英語を併記するため）
 // KO_EN[候名] = 候の英訳 / SEKKI_EN[節気名] = 節気英訳 / UI_EN[語] = UI英訳
@@ -505,7 +501,7 @@ function enHana(h) { return HANA_EN[h] || ''; }
 function enShun(s) { return SHUN_EN[s] || ''; }
 function enUI(t) { return UI_EN[t] || ''; }
 
-// ===================== engine.js =====================
+// ===== engine.js =====
 // ============================================================
 // engine.js — シード乱数・色・月齢・刻・日替わり構図
 // RN版 prng.js / daily.js を Web(Canvas) 向けに移植
@@ -532,6 +528,7 @@ function rgbToHex([r, g, b]) {
   return `#${c(r)}${c(g)}${c(b)}`;
 }
 const shade = (hex, f) => rgbToHex(hexToRgb(hex).map((v) => v * f));
+const lighten = (hex, f) => rgbToHex(hexToRgb(hex).map((v) => Math.min(255, v + (255 - v) * f)));
 const mix = (a, b, t) => {
   const A = hexToRgb(a), B = hexToRgb(b);
   return rgbToHex([0, 1, 2].map((i) => A[i] + (B[i] - A[i]) * t));
@@ -592,20 +589,21 @@ function buildScene({ baseDate, sessionSeed, sekki, now, W, H }) {
     phase, color: tod.day ? '#f3dc9e' : '#f2ead2',
   };
 
-  const clouds = Array.from({ length: 2 + Math.floor(R() * 4) }, () => ({
-    cx: W * R(), cy: H * (0.05 + R() * 0.3),
-    rx: (70 + R() * 170) * (W / 390), ry: (18 + R() * 42) * (W / 390),
-    fill: shade(c0, 0.45 + R() * 0.3), o: 0.18 + R() * 0.25, dx: (M() - 0.5) * 24,
+  const cloudFill = tod.day ? lighten(c1, 0.5 + R() * 0.2) : shade(c0, 0.45 + R() * 0.3);
+  const clouds = Array.from({ length: 1 + Math.floor(R() * 2) }, () => ({
+    cx: W * R(), cy: H * (0.45 + R() * 0.25),
+    rx: (70 + R() * 140) * (W / 390), ry: (14 + R() * 30) * (W / 390),
+    fill: cloudFill, o: (tod.day ? 0.1 : 0.12) + R() * 0.1, dx: (M() - 0.5) * 24,
   }));
 
-  const splashes = Array.from({ length: 1 + Math.floor(R() * 2) }, () => {
-    const cx = W * (0.12 + R() * 0.76), cy = H * (0.06 + R() * 0.34);
+  const splashes = Array.from({ length: 1 }, () => {
+    const cx = W * (0.12 + R() * 0.5), cy = H * (0.4 + R() * 0.4);
     const rot = (R() * 180 + (M() - 0.5) * 10) * Math.PI / 180;
-    return Array.from({ length: 3 }, (_, j) => ({
-      cx: cx + (R() - 0.5) * 60, cy: cy + (R() - 0.5) * 36,
-      rx: (60 + R() * 120) * (W / 390), ry: (8 + R() * 22) * (W / 390),
+    return Array.from({ length: 2 }, (_, j) => ({
+      cx: cx + (R() - 0.5) * 50, cy: cy + (R() - 0.5) * 30,
+      rx: (40 + R() * 70) * (W / 390), ry: (6 + R() * 14) * (W / 390),
       rot: rot + j * (8 + R() * 14) * Math.PI / 180,
-      o: 0.05 + R() * 0.09, fill: j === 1 ? GOLD : GOLD_DEEP,
+      o: 0.025 + R() * 0.04, fill: j === 1 ? GOLD : GOLD_DEEP,
     }));
   }).flat();
 
@@ -645,34 +643,47 @@ function buildScene({ baseDate, sessionSeed, sekki, now, W, H }) {
 function drawScene(ctx, spec) {
   const { W, H, sky, cel, clouds, splashes, ridges, water, flecks, grain, vignette } = spec;
 
-  // 空
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, sky.top); g.addColorStop(0.55, sky.mid); g.addColorStop(1, sky.bottom);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // 空はCSS背景（season-bg）が昼夜対応で描くため、Canvasは透明地のまま
+  // （天体・雲・山・星などの「空の上の要素」だけを重ねる）
+  ctx.clearRect(0, 0, W, H);
 
-  // 天体の暈
-  const halo = ctx.createRadialGradient(cel.x, cel.y, 0, cel.x, cel.y, cel.r * cel.haloK);
-  halo.addColorStop(0, cel.color + '80');
-  halo.addColorStop(0.5, cel.color + '28');
+  // 天体の暈（円形・柔らかく）
+  const halo = ctx.createRadialGradient(cel.x, cel.y, cel.r * 0.7, cel.x, cel.y, cel.r * cel.haloK);
+  halo.addColorStop(0, cel.color + '55');
+  halo.addColorStop(0.4, cel.color + '22');
   halo.addColorStop(1, cel.color + '00');
   ctx.fillStyle = halo;
-  ctx.fillRect(cel.x - cel.r * cel.haloK, cel.y - cel.r * cel.haloK, cel.r * cel.haloK * 2, cel.r * cel.haloK * 2);
+  ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r * cel.haloK, 0, Math.PI * 2); ctx.fill();
 
-  // 天体本体
-  ctx.globalAlpha = 0.96; ctx.fillStyle = cel.color;
-  ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // 月相の影
+  // 月本体（淡い質感つき）
   if (cel.type === 'moon') {
+    ctx.globalAlpha = 0.96; ctx.fillStyle = cel.color;
+    ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
+    // ほのかな陰影（立体感）
+    const sh = ctx.createRadialGradient(cel.x - cel.r * 0.3, cel.y - cel.r * 0.3, cel.r * 0.2, cel.x, cel.y, cel.r);
+    sh.addColorStop(0, 'rgba(255,255,255,0.12)');
+    sh.addColorStop(1, 'rgba(0,0,0,0.10)');
+    ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 月相の影：CSS背景の上部色（window.__skyTop）で塗り、空に溶かす
     const illum = 1 - Math.abs(cel.phase - 0.5) * 2;
     if (illum < 0.97) {
       const waxing = cel.phase < 0.5;
-      const dx = (1 - illum) * cel.r * 1.7 * (waxing ? -1 : 1);
-      ctx.globalAlpha = 0.94; ctx.fillStyle = sky.top;
-      ctx.beginPath(); ctx.arc(cel.x + dx, cel.y - cel.r * 0.08, cel.r * 1.02, 0, Math.PI * 2); ctx.fill();
+      const dx = (1 - illum) * cel.r * 1.5 * (waxing ? -1 : 1);
+      const shadowCol = (typeof window !== 'undefined' && window.__skyTop) ? window.__skyTop : shade(sky.top, 0.55);
+      ctx.globalAlpha = 1; ctx.fillStyle = shadowCol;
+      ctx.beginPath(); ctx.arc(cel.x + dx, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
+  } else {
+    // 太陽（昼）：影なし・明るい本体＋強い暈
+    ctx.globalAlpha = 0.98; ctx.fillStyle = cel.color;
+    ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
+    const sg = ctx.createRadialGradient(cel.x, cel.y, cel.r * 0.5, cel.x, cel.y, cel.r);
+    sg.addColorStop(0, 'rgba(255,250,235,0.5)');
+    sg.addColorStop(1, 'rgba(255,240,200,0)');
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(cel.x, cel.y, cel.r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   const ellipse = (cx, cy, rx, ry, rot, fill, o) => {
@@ -725,7 +736,7 @@ function drawScene(ctx, spec) {
   ctx.fillStyle = spec.tod.tint; ctx.fillRect(0, 0, W, H);
 }
 
-// ===================== ornate.js =====================
+// ===== ornate.js =====
 // ============================================================
 // ornate.js — 豪華装飾レイヤー
 // 金箔の質感・装飾枠・二十四節気の羅針盤・四隅飾り・金の罫線装飾
@@ -852,7 +863,7 @@ function hankoSVG(chars, size) {
   </svg>`;
 }
 
-// ===================== waka.js =====================
+// ===== waka.js =====
 // ============================================================
 // waka.js — 季節の古典和歌（24節気に一首ずつ）
 // すべて著作権の切れた古典（古今集・新古今集・百人一首・万葉集等）
@@ -935,7 +946,7 @@ const WAKA = [
 
 function wakaForSekki(sekkiIndex) { return WAKA[sekkiIndex] || WAKA[0]; }
 
-// ===================== particles.js =====================
+// ===== particles.js =====
 // ============================================================
 // particles.js — 季節の粒子（Canvasアニメーション）
 // fireflies/petals/rain/snow/leaves/mist/light/stars/golddust
@@ -1038,7 +1049,7 @@ class ParticleSystem {
   }
 }
 
-// ===================== sound_synth.js =====================
+// ===== sound_synth.js =====
 // ============================================================
 // sound_synth.js — Web Audioで季節の音をその場合成（音声ファイル不要）
 // 川/雨/風/雪/小鳥/蛙/蝉/ひぐらし/虫/風鈴/夕立 を波形生成
@@ -1205,7 +1216,7 @@ class SoundManager {
 const soundManager = new SoundManager();
 // rnd は particles.js で定義済みのものを共用
 
-// ===================== share.js =====================
+// ===== share.js =====
 // ============================================================
 // share.js — 「今日の一枚」を画像化してSNS共有・保存
 // Canvasで縦長カードを描画 → Web Share API（OS標準）or ダウンロード
@@ -1353,7 +1364,7 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
   });
 }
 
-// ===================== app.js =====================
+// ===== app.js =====
 // ============================================================
 // app.js — こよみ七十二候 PWA 本体
 // ============================================================
@@ -1449,55 +1460,41 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
   function renderUI() {
     const ko = KO[current], sekki = SEKKI[ko.s];
     setSeasonBg(ko.s);
-    drawGoldFrame();
-    // 枠ラベル（英訳つき）
-    const fc = '七十二候'.split('').map((c) => `<span class="fc">${c}</span>`).join('');
-    const num = ('第' + kanjiNum(current + 1) + '候').split('').map((c) => `<span class="fc">${c}</span>`).join('');
-    $('frame').innerHTML = fc + '<div class="div"></div>' + num +
-      '<div class="fc-en">No.' + (current + 1) + '<br>of 72</div>' +
-      (current === todayIndex ? '<div id="today-mark">今日<br><span class="tm-en">TODAY</span></div>' : '');
+    // 候番号（縦・極小）「第◯候」
+    $('ordinal').innerHTML =
+      `<span class="cur">第${kanjiNum(current + 1)}候</span>` +
+      (current === todayIndex ? '<span class="today">今日</span>' : '');
     // 題字
-    const ts = ko.k.length <= 3 ? 62 : 50;
     const kanji = ko.k.split('').map((c) => `<div>${c}</div>`).join('');
     const ruby = ko.y.split('').map((c) => `<span>${c}</span>`).join('');
-    $('title').style.setProperty('--ts', ts + 'px');
     $('title').innerHTML = `<div class="kanji">${kanji}</div><div class="ruby">${ruby}</div>`;
     $('title-en').textContent = enKo(ko.k);
-    // 解説
-    $('desc').textContent = ko.t;
-    // 落款（SVG）
-    $('hanko').innerHTML = hankoSVG('歳時記行', 34);
-    // 羅針盤（現在の節気へ回転）
-    const compassEl = $('compass');
-    if (!compassEl.dataset.built) {
-      compassEl.innerHTML = compassSVG(ko.s, 94, 'main');
-      compassEl.dataset.built = '1';
-      compassEl.dataset.sekki = ko.s;
-    } else if (compassEl.dataset.sekki != ko.s) {
-      spinCompass('compass', ko.s, 'main');
-      compassEl.dataset.sekki = ko.s;
-    }
-    // 脇情報
-    $('side').querySelector('.sekki').innerHTML =
-      `${sekki.n}　${rangeLabel(current)}<br><span class="s-en">${enSekki(sekki.n)}</span>`;
-    const tokiJa = `${spec.tod.n}の刻　${moonName(moonPhase(baseDateFor(current)))}`;
-    const tokiEn = `${enUI(spec.tod.n)} · ${enUI(moonName(moonPhase(baseDateFor(current))))}`;
-    $('side').querySelector('.toki').innerHTML = `${tokiJa}<br><span class="s-en">${tokiEn}</span>`;
-    // フッター装飾罫
-    $('footrule').innerHTML = goldRuleH(window.innerWidth - 36);
+    // 季節・日付（一行・控えめ）
+    $('meta').innerHTML =
+      `<span class="m-sekki">${sekki.n}</span>　${rangeLabel(current)}` +
+      `<br><span class="m-en">${enSekki(sekki.n)}</span>`;
+    // 進行
     $('fill').style.width = ((current + 1) / KO.length * 100) + '%';
-    $('b-today').style.display = current === todayIndex ? 'none' : 'inline-block';
-    const sndJa = muted ? '消音中' : (SOUND_NAMES[ko.snd] || '');
-    const sndEn = muted ? 'Muted' : enUI(SOUND_NAMES[ko.snd] || '');
-    $('b-sound').innerHTML = '♪ ' + sndJa + ' <span class="b-en">' + sndEn + '</span>';
+    renderDots();
+    // 音アイコン
     $('b-sound').classList.toggle('off', muted);
     // 入場フェード
-    ['frame', 'title', 'title-en', 'desc', 'hanko', 'side'].forEach((id, i) => {
+    ['ordinal', 'title', 'title-en', 'meta', 'more-hint'].forEach((id, i) => {
       const el = $(id); if (!el) return; el.classList.remove('in');
-      setTimeout(() => el.classList.add('in'), 60 + i * 100);
+      setTimeout(() => el.classList.add('in'), 80 + i * 110);
     });
     soundManager.play(ko.snd);
     if (typeof updateFavBtn === 'function') updateFavBtn();
+  }
+
+  // 進行ドット（節気24個を表現：6個ずつ季節区切り）
+  function renderDots() {
+    const el = $('dots'); if (!el) return;
+    const curSekki = KO[current].s;
+    if (el.childElementCount !== 24) {
+      el.innerHTML = Array.from({ length: 24 }, () => '<span class="dot"></span>').join('');
+    }
+    [...el.children].forEach((d, i) => d.classList.toggle('on', i === curSekki));
   }
 
   // 金箔の額縁（画面全体を囲む二重罫＋四隅飾り）
@@ -1519,35 +1516,58 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
     `;
   }
 
-  // 候ごとに背景の表情を変える（4枚の季節写真をベースに72通りの見え方）
+  // 背景：節気の色で構成したグラデーション（写真ではなく色面＝文字干渉なし・季節感豊か）
   let curSeason = null;
   function setSeasonBg(sekkiIndex) {
-    const ko = KO[current];
-    const season = sekkiIndex < 6 ? 'spring' : sekkiIndex < 12 ? 'summer' : sekkiIndex < 18 ? 'autumn' : 'winter';
     const bg = document.getElementById('season-bg');
     if (!bg) return;
-    if (season !== curSeason) {
-      curSeason = season;
-      bg.style.backgroundImage = `url('img/bg_${season}.jpg')`;
-    }
-    // 候ごとに表情を変える（節気内の進行度 0..1 と 候indexで決定論的に）
-    // 節気内の位置（0,1,2）と全体進行で、ズーム・位置・色調を変える
-    const within = current % 3;           // 節気内の候位置 0,1,2
-    const prog = current / 71;            // 一年の進行 0..1
-    const zoom = 1.04 + within * 0.05;    // 候が進むごとに少しズーム
-    const posX = 30 + within * 20;        // 横位置をずらす
-    const posY = 35 + (prog * 30 % 30);   // 縦位置を移ろわせる
-    // 刻に応じた色温度（朝は暖色、夜は寒色）
+    const sekki = SEKKI[sekkiIndex];
+    const [dark, mid, accent] = sekki.c;
+    // 刻に応じて全体の明暗を変える
     const todName = spec ? spec.tod.n : '昼';
-    const warm = (todName === '暁' || todName === '夕') ? 1 : (todName === '夜半' || todName === '宵') ? 0 : 0.5;
-    const hue = warm > 0.6 ? 8 : warm < 0.3 ? -12 : 0;
-    const bright = (todName === '夜半') ? 0.62 : (todName === '宵' || todName === '暁') ? 0.78 : 0.95;
-    const sat = 0.85 + within * 0.06;
-    bg.style.backgroundSize = `${zoom * 100}%`;
-    bg.style.backgroundPosition = `${posX}% ${posY}%`;
-    bg.style.filter = `brightness(${bright}) saturate(${sat}) hue-rotate(${hue}deg)`;
-    bg.style.transition = 'background-position 1.6s ease, background-size 1.6s ease, filter 1.4s ease, opacity 1.4s ease';
+    const night = (todName === '夜半' || todName === '宵');
+    const dawn = (todName === '暁' || todName === '夕');
+    const day = !night && !dawn;  // 昼・朝
+    // 昼は明るく（accent寄り）、夜は暗く（dark寄り）
+    let top, midC, bot, glowO;
+    if (day) {
+      // 昼：明るい空。accentを主役に、白みも足して爽やかに
+      top = mix(accent, '#e8eef2', 0.32);
+      midC = mix(accent, mid, 0.45);
+      bot = mix(mid, dark, 0.4);
+      glowO = 0.5;
+    } else if (dawn) {
+      // 暁・夕：中間の柔らかな光
+      top = mix(dark, accent, 0.4);
+      midC = mix(mid, dark, 0.2);
+      bot = dark;
+      glowO = 0.32;
+    } else {
+      // 夜：暗い藍
+      top = dark;
+      midC = mix(mid, dark, 0.5);
+      bot = dark;
+      glowO = 0.12;
+    }
+    bg.style.backgroundImage =
+      `radial-gradient(ellipse 90% 55% at 70% 22%, ${hexA(accent, glowO)} 0%, transparent 55%),` +
+      `linear-gradient(165deg, ${top} 0%, ${midC} 48%, ${bot} 100%)`;
+    bg.style.filter = 'none';
+    bg.style.transition = 'background-image 1.6s ease';
+    document.body.classList.toggle('is-day', day);
+    document.body.classList.toggle('is-night', night);
+    // 月の影が空に溶けるよう、背景上部色をエンジンへ共有
+    window.__skyTop = top;
+    curSeason = sekkiIndex;
   }
+  // 色補助
+  function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function mix(a, b, t) {
+    const A = hex2rgb(a), B = hex2rgb(b);
+    const r = Math.round(A[0] + (B[0] - A[0]) * t), g = Math.round(A[1] + (B[1] - A[1]) * t), bl = Math.round(A[2] + (B[2] - A[2]) * t);
+    return `rgb(${r},${g},${bl})`;
+  }
+  function hexA(h, a) { const c = hex2rgb(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
 
   // ページ送り
   function go(i) {
@@ -1570,20 +1590,30 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
       go(current + (dx < 0 ? 1 : -1));   // 左スワイプ=次へ
     } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
-      // タップ=波紋
-      addRipple(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
     }
   }, { passive: true });
 
-  // PC用：クリックで波紋、矢印キーで送り
+  // PC用：クリック、矢印キーで送り
   stage.addEventListener('click', (e) => {
-    if (e.target.closest('.btn') || e.target.closest('#shiori')) return;
-    addRipple(e.clientX, e.clientY);
+    if (swiping) return;
+    handleTap(e.clientX, e.clientY, e.target);
   });
   window.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') go(current - 1);
     if (e.key === 'ArrowRight') go(current + 1);
+    if (e.key === 'ArrowUp' || e.key === 'Enter') openShiori();
   });
+
+  // タップの振り分け：ボタン上は無視／中央〜題字は詳細／その他は波紋
+  function handleTap(x, y, target) {
+    if (target.closest('.ic') || target.closest('#shiori') || target.closest('#menu') ||
+        target.closest('#calendar') || target.closest('#a2hs')) return;
+    // 上寄り（題字・季節情報のあたり）をタップ → 詳細
+    const titleZone = y < window.innerHeight * 0.7 && y > window.innerHeight * 0.12;
+    if (titleZone) { openShiori(); return; }
+    addRipple(x, y);
+  }
 
   function addRipple(x, y) {
     ripples.push({ x, y, t: 0 });
@@ -1593,12 +1623,15 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
   }
 
   // ボタン
-  $('b-today').addEventListener('click', (e) => { e.stopPropagation(); go(todayIndex); });
   $('b-sound').addEventListener('click', (e) => {
     e.stopPropagation(); soundManager.unlock();
     muted = !muted; soundManager.setMuted(muted); renderUI();
   });
-  $('b-shiori').addEventListener('click', (e) => { e.stopPropagation(); openShiori(); });
+  $('b-menu').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.add('on'); });
+  $('menu-close').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.remove('on'); });
+  $('menu').addEventListener('click', (e) => { if (e.target.id === 'menu') $('menu').classList.remove('on'); });
+  $('m-today').addEventListener('click', (e) => { e.stopPropagation(); go(todayIndex); $('menu').classList.remove('on'); });
+  $('m-cal').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.remove('on'); openCalendar(); });
 
   // ===== A. 共有（今日の一枚を画像化）=====
   const bShare = $('b-share');
@@ -1622,14 +1655,12 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
   function updateFavBtn() {
     const b = $('b-fav'); if (!b) return;
     b.classList.toggle('on', isFav(current));
-    b.innerHTML = (isFav(current) ? '★' : '☆') + ' <span class="b-en">' + (lang === 'en' ? 'Save' : '栞') + '</span>';
+    b.innerHTML = (isFav(current) ? '★ 栞にはさんだ' : '☆ 栞にはさむ');
   }
   const bFav = $('b-fav');
   if (bFav) bFav.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(current); });
 
   // ===== C. カレンダー（72候の一覧から選ぶ）=====
-  const bCal = $('b-cal');
-  if (bCal) bCal.addEventListener('click', (e) => { e.stopPropagation(); openCalendar(); });
   function openCalendar() {
     const grid = $('cal-grid');
     grid.innerHTML = KO.map((ko, i) => {
@@ -1660,44 +1691,53 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
 
   // ===== D. 言語切替（日/英）=====
   applyLang();
-  const bLang = $('b-lang');
+  const bLang = $('m-lang');
   if (bLang) bLang.addEventListener('click', (e) => {
     e.stopPropagation();
     lang = lang === 'ja' ? 'en' : 'ja';
     try { localStorage.setItem('koyomi-lang', lang); } catch (er) {}
     applyLang(); renderUI(); updateFavBtn();
+    $('menu').classList.remove('on');
   });
   function applyLang() {
     document.body.classList.toggle('lang-en', lang === 'en');
-    const b = $('b-lang');
-    if (b) b.textContent = lang === 'ja' ? 'EN' : '日本語';
+    const b = $('m-lang');
+    if (b) b.querySelector('span').textContent = lang === 'ja' ? 'English' : '日本語に戻す';
   }
 
 
   // 栞
   function openShiori() {
     const ko = KO[current], sekki = SEKKI[ko.s];
-    $('sh-head').innerHTML = '栞　—　' + ko.k + '<br><span class="sh-en">' + enKo(ko.k) + '</span>';
-    $('sh-rule').innerHTML = goldRuleH(230);
-    const col = (title, titleEn, body, bodyEn) =>
-      `<div class="col"><div class="ct v">${title}</div><div class="cr"></div>` +
-      `<div class="cb v">${body}</div>` +
-      (bodyEn ? `<div class="cb-en">${bodyEn}</div>` : '') + `</div>`;
+    $('sh-head').innerHTML = ko.k + '<span class="sh-en">' + enKo(ko.k) + '</span>';
+    $('sh-rule').innerHTML = goldRuleH(240);
+    // 花・味・音：横並びの小カード
+    const item = (label, labelEn, body, bodyEn) =>
+      `<div class="sh-item"><div class="si-label">${label}<span>${labelEn}</span></div>` +
+      `<div class="si-body">${body}</div><div class="si-en">${bodyEn}</div></div>`;
     $('cols').innerHTML =
-      col('候の花', 'Flower', ko.hana, enHana(ko.hana)) +
-      col('旬の味', 'Taste', ko.shun, enShun(ko.shun)) +
-      col('節気のこと', 'Term', `${sekki.n}（${sekki.y}）。${sekki.t}`, enSekki(sekki.n)) +
-      col('いまの音', 'Sound', SOUND_NAMES[ko.snd] || '', enUI(SOUND_NAMES[ko.snd] || ''));
+      item('候の花', 'Flower', ko.hana, enHana(ko.hana)) +
+      item('旬の味', 'Taste', ko.shun, enShun(ko.shun)) +
+      item('今の音', 'Sound', SOUND_NAMES[ko.snd] || '', enUI(SOUND_NAMES[ko.snd] || ''));
+    // 節気の説明（独立段落）
+    $('sh-waka').innerHTML =
+      `<div class="sh-term"><div class="st-name">${sekki.n}　<span>${sekki.y}</span></div>` +
+      `<div class="st-body">${sekki.t}</div>` +
+      `<div class="st-en">${enSekki(sekki.n)}</div></div>`;
     // 季節の和歌
     const wk = wakaForSekki(ko.s);
-    $('sh-waka').innerHTML =
-      `<div class="wk-poem">${wk.w}</div>` +
+    $('sh-waka').innerHTML +=
+      `<div class="wk-wrap"><div class="wk-poem">${wk.w}</div>` +
       `<div class="wk-author">— ${wk.a}　《${wk.src}》</div>` +
       `<div class="wk-im">${wk.im}</div>` +
-      `<div class="wk-en">${wk.en}</div>`;
+      `<div class="wk-en">${wk.en}</div></div>`;
     $('shiori').classList.add('on');
   }
-  $('shiori').addEventListener('click', (e) => { if (e.target.id !== 'privacy-link') $('shiori').classList.remove('on'); });
+  $('shiori').addEventListener('click', (e) => {
+    if (e.target.id === 'shiori' || e.target.classList.contains('close')) {
+      $('shiori').classList.remove('on');
+    }
+  });
 
   // iOS Safari & 未インストール時のみ「ホーム追加」案内
   function maybeShowA2HS() {
@@ -1915,6 +1955,30 @@ async function shareCard(ko, sekki, baseDate, sessionSeed, lang) {
         opacity: 0; transition: opacity 1s ease; }
       #opening.op-in .op-hint { opacity: 1; transition-delay: 4.7s; animation: opPulse 2.6s ease-in-out 5.2s infinite; }
       @keyframes opPulse { 0%,100% { opacity: .5 } 50% { opacity: .85 } }
+      @media (max-height: 700px) {
+        .op-title { font-size: 44px; margin-top: 14px; }
+        .op-sub { font-size: 16px; margin-top: 12px; }
+        .op-today { margin-top: 20px; }
+        .op-today-ko { font-size: 25px; }
+        .op-compass { width: 92px; height: 92px; margin-top: 16px; }
+        .op-guide { margin-top: 22px; }
+        .op-guide-row { margin: 5px 0; }
+        .op-gj { font-size: 11.5px; }
+        #op-start { margin-top: 24px; padding: 10px 32px; }
+      }
+      @media (min-width: 768px) {
+        #op-inner { max-width: 600px; }
+        .op-title { font-size: 84px; letter-spacing: 22px; }
+        .op-sub { font-size: 26px; letter-spacing: 18px; }
+        .op-sub-en { font-size: 12px; }
+        .op-today-ko { font-size: 40px; }
+        .op-today-yomi { font-size: 15px; }
+        .op-today-en { font-size: 13px; }
+        .op-compass { width: 150px; height: 150px; }
+        .op-gj { font-size: 15px; }
+        .op-ge { font-size: 11px; }
+        #op-start { font-size: 18px; padding: 14px 52px; }
+      }
     `;
     document.head.appendChild(s);
   }
